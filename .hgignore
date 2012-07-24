@@ -1,0 +1,9 @@
+\.orig$
+\.rej$
+\.pem$
+etc/.*\.(conf|yml)$
+\.DS_Store
+~$
+laika-legacy/config/host\.yml$
+ldap-snapshot.*
+pkg/
