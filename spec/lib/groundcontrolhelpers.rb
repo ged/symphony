@@ -26,20 +26,20 @@ require 'spec/lib/groundcontrolconstants'
 
 
 ### RSpec helper functions for laika-ldap classes.
-module LAIKA::GroundcontrolSpecHelpers
+module LAIKA::GroundControlSpecHelpers
 
 	# Any groundcontrol-specific setup methods go here
 
 end
 
 RSpec.configure do |config|
-	include LAIKA::GroundcontrolTestConstants
+	include LAIKA::GroundControlTestConstants
 
 	config.mock_with( :rspec )
 
 	config.include( LAIKA::BaseSpecHelpers )
-	config.include( LAIKA::GroundcontrolSpecHelpers )
-	config.include( LAIKA::GroundcontrolTestConstants )
+	config.include( LAIKA::GroundControlSpecHelpers )
+	config.include( LAIKA::GroundControlTestConstants )
 
 end
 
