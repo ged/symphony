@@ -4,7 +4,7 @@ require 'laika' unless defined?( LAIKA )
 
 
 ### A collection of constants used in testing laika-groundcontrol classes
-module LAIKA::GroundcontrolTestConstants # :nodoc:all
+module LAIKA::GroundControlTestConstants # :nodoc:all
 
 	unless defined?( A_CONSTANT )
 

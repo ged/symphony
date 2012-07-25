@@ -20,12 +20,13 @@ require 'laika/groundcontrol'
 require 'laika/featurebehavior'
 
 
-describe LAIKA::Groundcontrol do
+describe LAIKA::GroundControl do
 
 	it_should_behave_like "a Feature-registration module"
 
-	it "is well-tested" do
-		fail "it isn't"
+
+	it "registers the job model class for requiring" do
+		LAIKA::DB.registered_models.should include( 'laika/groundcontrol/job' )
 	end
 
 end
