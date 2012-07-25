@@ -20,6 +20,8 @@ hoespec = Hoe.spec 'laika-groundcontrol' do
 
 	self.developer 'Michael Granger', 'mgranger@laika.com'
 
+	self.dependency 'laika-db', '~> 0.6'
+
 	self.dependency 'rspec', '~> 2.7', :developer
 
 	self.require_ruby_version( '>=1.8.7' )
