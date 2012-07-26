@@ -7,3 +7,4 @@ etc/.*\.(conf|yml)$
 laika-legacy/config/host\.yml$
 ldap-snapshot.*
 pkg/
+^ChangeLog$

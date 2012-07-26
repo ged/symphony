@@ -1,0 +1,12 @@
+# Settings
+projectDirectory     = "$CWD"
+windowTitle          = "${CWD/^.*\///} — «$TM_DISPLAYNAME»"
+excludeInFileChooser = "{$exclude,.hg,pkg}"
+
+TM_RUBY = '/Users/mgranger/.rvm/bin/rvm-auto-ruby'
+TM_RSPEC_OPTS = '-I/Users/mgranger/source/ruby/rspec-formatter-webkit/lib'
+
+[ source.ruby ]
+softTabs         = false
+tabSize          = 4
+
