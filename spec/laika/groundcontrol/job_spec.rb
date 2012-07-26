@@ -25,7 +25,7 @@ require 'laika/featurebehavior'
 
 
 describe 'LAIKA::GroundControl::Job' do
-	
+
 	before( :all ) do
 		setup_logging( :fatal )
 		setup_test_database()
@@ -46,21 +46,29 @@ describe 'LAIKA::GroundControl::Job' do
 		job.errors[:method_name].should include {|thing| thing =~ /present/i }
 	end
 
+	it "requires a valid SQL identifier as its queue name" do
+		job = LAIKA::GroundControl::Job.new( method_name: 'PunchBag2000',
+		                                     queue_name: 'punch drunk monkeys' )
+		job.should_not be_valid()
+		job.errors.should have( 1 ).member
+		job.errors[:queue_name].should include {|thing| thing =~ /identifier/i }
+	end
+
 	it "is valid if it has a method name" do
-		job = LAIKA::GroundControl::Job.new( :method_name => 'flying_monkies' )
+		job = LAIKA::GroundControl::Job.new( :method_name => 'flying_monkeys' )
 		job.should be_valid()
 		job.errors.should be_empty
 	end
 
 	it "stringifies correctly" do
-		job = LAIKA::GroundControl::Job.create( :method_name => 'flying_monkies' )
-		job.to_s.should =~ /flying_monkies \[default\] @#{job.created_at}/i
+		job = LAIKA::GroundControl::Job.create( :method_name => 'flying_monkeys' )
+		job.to_s.should =~ /flying_monkeys \[#{job.queue_name}\] @#{job.created_at}/i
 	end
 
 	it "stringifies correctly after being locked" do
-		job = LAIKA::GroundControl::Job.create( :method_name => 'flying_monkies' )
+		job = LAIKA::GroundControl::Job.create( :method_name => 'flying_monkeys' )
 		job.locked_at = Time.now
-		job.to_s.should =~ /flying_monkies \[default\] @#{job.created_at} \(in progress\)/i
+		job.to_s.should =~ /flying_monkeys \[#{job.queue_name}\] @#{job.created_at} \(in progress\)/i
 	end
 
 end

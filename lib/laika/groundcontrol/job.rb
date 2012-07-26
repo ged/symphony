@@ -28,17 +28,46 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	def_dataset_method( :running ) { filter(:locked_at) }
 
 
+	### Default the queue name if it's not set on instantiation.
+	def initialize( *args ) # :notnew:
+		super
+		self.queue_name ||= LAIKA::GroundControl::Queue::DEFAULT_NAME
+	end
+
+
+	######
+	public
+	######
+
 	### Validation callback.
 	def validate
 		super
 
 		self.validate_required_fields
+		self.validate_queue_name
 	end
 
 
 	### Ensure required fields are defined.
 	def validate_required_fields
 		self.validates_presence( [:method_name] )
+	end
+
+
+	### Ensure the queue name is a valid SQL identifier
+	def validate_queue_name
+		self.validates_format( /^\w+$/, :queue_name, message: "must be a valid SQL identifier" )
+	end
+
+
+	### Sequel Hook -- send a notification whenever there's a modification
+	### :TODO: This may need to be moved to #after_create instead if notifications
+	###        sent after a job is fetched and locked is problematic.
+	def after_save
+		self.log.debug "Sending a notification for the %s queue" % [ self.queue_name ]
+
+		# :TODO: Possible Sequel bug? We shouldn't have to quote this identifier.
+		self.db.notify( self.queue_name )
 	end
 
 

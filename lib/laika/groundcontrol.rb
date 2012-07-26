@@ -18,11 +18,9 @@ module LAIKA::GroundControl
 	require 'laika/groundcontrol/queue'
 
 
-	### Enqueue the specified +job+ in the given +queue+.
-	def self::enqueue( queuename, job, *args )
-		queue = LAIKA::GroundControl::Queue[ queuename ] or
-			raise ArgumentError, "No such queue #{queuename}"
-		queue.add( job )
+	### Return a default GroundControl job queue.
+	def self::default_queue
+		return LAIKA::GroundControl::Queue.new
 	end
 
 
