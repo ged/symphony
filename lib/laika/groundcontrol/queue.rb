@@ -59,35 +59,58 @@ class LAIKA::GroundControl::Queue
 	### Fetch the next job from the queue, blocking until one is available if the queue
 	### is empty.
 	def next
+		self.log.debug "Fetching next job for queue %s" % [ self.name ]
 		job = nil
 
-		loop do
-			break if job = self.dataset.filter( locked_at: nil ).limit( 1 ).for_update.first
+		begin
+			LAIKA::GroundControl::Job.db.transaction( :rollback => :reraise ) do
+				job = self.dataset.filter( locked_at: nil ).limit( 1 ).for_update.first or
+					raise Sequel::Rollback, "no pending jobs"
+				self.log.debug "  got job: %s" % [ job ]
+				job.locked_at = Time.now
+				job.save
+			end
+		rescue Sequel::Rollback => err
+			self.log.debug "  rollback (%s): waiting for notification" % [ err.message ]
 			self.wait_for_notification
+			retry
 		end
 
-		job.locked_at = Time.now
-		job.save
-
+		self.log.debug "  returning with job: %p" % [ job ]
 		return job
+	rescue ::Exception => err
+		self.log.error "%p! %s" % [ err.class, err.message ]
 	end
 
+
+	### Wait for a notification from PostgreSQL that the queue has been updated. If +poll+ is true,
+	### notifications will be waited for in a loop, and the block called for each one received. If
+	### +timeout+ is specified, this method will return +timeout+ seconds after it was called if no
+	### notifications arrive.
+	def wait_for_notification( poll=false, timeout=nil, &block )
+		db = LAIKA::GroundControl::Job.db
+
+		options = {
+			:after_listen => self.method( :start_waiting ),
+			:loop         => poll,
+			:timeout      => timeout,
+		}
+		block ||= Proc.new {|*| self.log.info "Got a notification!" }
+
+		db.listen( self.name, options, &block )
+
+		# :TODO: Does this need to drain other notifications?
+	end
+
+
+	#########
+	protected
+	#########
 
 	### Callback for notification wait state. Called after the LISTEN, but before the
 	### thread blocks waiting for notification.
 	def start_waiting( conn )
 		self.log.info "Waiting for the next job on %p." % [ conn ]
-	end
-
-
-	### Wait for a notification from PostgreSQL that the queue has been updated.
-	def wait_for_notification
-		db = LAIKA::GroundControl::Job.db
-		db.listen( self.name, after_listen: self.method(:start_waiting) ) do |*|
-			self.log.info "Got a notification!"
-		end
-
-		# :TODO: Does this need to drain other notifications?
 	end
 
 
