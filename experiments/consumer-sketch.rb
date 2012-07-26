@@ -1,16 +1,31 @@
 #!/usr/bin/env ruby
 
+require 'loggability'
 require 'laika'
+require 'net/ping/tcp'
+
+$stderr.sync = false
 
 # A little sketch of how GroundControl's API should work.
 
 LAIKA.require_features( :groundcontrol )
 LAIKA.load_config( '../../etc/config.yml' )
 
-queue = LAIKA::GroundControl.default_queue
+if $VERBOSE
+	Loggability.level = :debug
+	Loggability.format_with( :color )
+end
 
-while job = queue.next
-	puts "Gathering stuff from #{job.arguments}"
-	system 'ping', '-c1', job.arguments
+queue = LAIKA::GroundControl.default_queue
+pinger = Net::Ping::TCP.new( nil, 22 )
+
+running = true
+
+Signal.trap( :TERM ) { running = false }
+Signal.trap( :INT ) { running = false }
+
+while (job = queue.next) && running
+	res = pinger.ping( job.arguments )
+	$stderr.puts "\e[33m#{job.arguments}: %s\e[0m" % [ res ? "\e[01;32mOK" : "\e[01;31mNOT OK" ]
 end
 

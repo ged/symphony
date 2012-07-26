@@ -66,7 +66,8 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	def after_save
 		self.log.debug "Sending a notification for the %s queue" % [ self.queue_name ]
 
-		# :TODO: Possible Sequel bug? We shouldn't have to quote this identifier.
+		# :TODO: Sequel doesn't quote this, so the queue_name can't be a keyword like 'default'.
+		#        Send a patch to Jeremy to fix this.
 		self.db.notify( self.queue_name )
 	end
 

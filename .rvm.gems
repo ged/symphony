@@ -8,5 +8,5 @@ queue_classic -v2.0.1
 clockwork -v0.4.1
 
 laika-base -v3.0.1 --source http://rubygems.laika.com
-laika-db -v0.6.1  --source http://rubygems.laika.com
+laika-db -v0.7.0  --source http://rubygems.laika.com
 
