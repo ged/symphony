@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'laika' unless defined?( LAIKA )
+require 'laika/exceptions'
 
 # GroundControl -- a task scheduler and job queue for LAIKA IT systems
 module LAIKA::GroundControl
@@ -16,11 +17,16 @@ module LAIKA::GroundControl
 
 	LAIKA::DB.register_model 'laika/groundcontrol/job'
 	require 'laika/groundcontrol/queue'
+	require 'laika/groundcontrol/task'
+
+
+	# An exception class raised when there is a problem with locking in a GroundControl::Job.
+	class LockingError < LAIKA::Exception; end
 
 
 	### Return a default GroundControl job queue.
 	def self::default_queue
-		return LAIKA::GroundControl::Queue.new
+		return LAIKA::GroundControl::Queue.default
 	end
 
 

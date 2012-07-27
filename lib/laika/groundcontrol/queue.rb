@@ -17,11 +17,19 @@ class LAIKA::GroundControl::Queue
 	DEFAULT_NAME = '_default_'
 
 
+	### Fetch a handle for the default queue.
+	def self::default
+		return new( DEFAULT_NAME )
+	end
+
+
+
+
 	### Create a new LAIKA::GroundControl::Queue with the given +name+.
 	def initialize( name=DEFAULT_NAME )
 		raise ArgumentError, "invalid identifier" unless name =~ /^\w+$/
 		@name = name
-		@dataset = LAIKA::GroundControl::Job.filter( queue_name: self.name )
+		@dataset = LAIKA::GroundControl::Job.for_queue( self.name )
 	end
 
 
@@ -38,16 +46,26 @@ class LAIKA::GroundControl::Queue
 
 	### Add the specified +job+ to the queue. The +job+ can be either a 
 	### LAIKA::GroundControl::Job, or a string that can be used to instantate
-	### one.
-	def add( job )
-		if job.respond_to?( :queue_name= )
-			job.queue_name = self.name
-		else
-			job = LAIKA::GroundControl::Job.new( method_name: job, queue_name: self.name )
-		end
-
+	### one. Returns the LAIKA::GroundControl::Job that was added.
+	def add( job, *arguments )
+		job = LAIKA::GroundControl::Job.new( task_name: job, task_arguments: arguments ) unless
+			job.respond_to?( :queue_name= )
+		job.queue_name = self.name
 		job.save
+
+		return job
 	end	
+
+
+	### Add a new copy of the given +job+ to the receiving queue, and returns the new
+	### job.
+	def re_add( job )
+		newjob = job.class.new
+		newjob.set_fields( job.values, [:created_at, :task_name] )
+		newjob.task_arguments = job.task_arguments # Re-serialize
+
+		return self.add( newjob )
+	end
 
 
 	### Return a (read-only) Array of jobs belonging to the Queue.
@@ -64,11 +82,10 @@ class LAIKA::GroundControl::Queue
 
 		begin
 			LAIKA::GroundControl::Job.db.transaction( :rollback => :reraise ) do
-				job = self.dataset.filter( locked_at: nil ).limit( 1 ).for_update.first or
+				job = self.dataset.unlocked.for_update.first or
 					raise Sequel::Rollback, "no pending jobs"
 				self.log.debug "  got job: %s" % [ job ]
-				job.locked_at = Time.now
-				job.save
+				job.lock
 			end
 		rescue Sequel::Rollback => err
 			self.log.debug "  rollback (%s): waiting for notification" % [ err.message ]
@@ -77,9 +94,9 @@ class LAIKA::GroundControl::Queue
 		end
 
 		self.log.debug "  returning with job: %p" % [ job ]
+		job.freeze
+
 		return job
-	rescue ::Exception => err
-		self.log.error "%p! %s" % [ err.class, err.message ]
 	end
 
 

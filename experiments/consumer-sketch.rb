@@ -25,7 +25,10 @@ Signal.trap( :TERM ) { running = false }
 Signal.trap( :INT ) { running = false }
 
 while (job = queue.next) && running
-	res = pinger.ping( job.arguments )
-	$stderr.puts "\e[33m#{job.arguments}: %s\e[0m" % [ res ? "\e[01;32mOK" : "\e[01;31mNOT OK" ]
+
+	task_type = job.task_name
+	task = task_type.new( job.arguments )
+	task.run( queue, job )
+
 end
 

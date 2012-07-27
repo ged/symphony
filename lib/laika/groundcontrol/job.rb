@@ -4,12 +4,17 @@ require 'laika' unless defined?( LAIKA )
 require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 require 'laika/model'
 
-# A task base class for LAIKA GroundControl jobs.
+
+# A Job is an instruction for running a Task with a particular set of arguments. They
+# are put into a Queue, and run with bin/gcworkerd.
 class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
+	extend LAIKA::MethodUtilities
 
 	plugin :validation_helpers
 	plugin :schema
 	plugin :timestamps
+	plugin :serialization
+
 
 	# Define the schema. If you're changing this, you should also be defining
 	# a migration.
@@ -17,27 +22,56 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 		primary_key :id
 
 		column :queue_name, :text, :null => false, :default => 'default'
-		column :method_name, :text, :null => false
-		column :arguments, :text
+		column :task_name, :text, :null => false
+		column :task_arguments, :text
 
 		column :created_at, :timestamp
 		column :locked_at, :timestamp
 	end
 
+	# Pre-define some datasets
+	def_dataset_method( :unlocked ) { filter(locked_at: nil) }
 	def_dataset_method( :for_queue ) {|queue_name| filter(:queue_name => queue_name) }
-	def_dataset_method( :running ) { filter(:locked_at) }
+	def_dataset_method( :locked ) { filter(:locked_at) }
+	singleton_method_alias :in_progress, :locked
+	
+
+	# Dont allow writes to the 'locked_at' columns via mass updates
+	set_restricted_columns :locked_at
+
+	# Serialize the job's arguments as JSON
+	serialize_attributes :marshal, :task_arguments
 
 
 	### Default the queue name if it's not set on instantiation.
-	def initialize( *args ) # :notnew:
+	def initialize( * ) # :notnew:
 		super
 		self.queue_name ||= LAIKA::GroundControl::Queue::DEFAULT_NAME
+	end
+
+
+	### Copy constructor -- clear the id and locked_at columns.
+	def initialize_copy( original )
+		self.id = nil
+		self.locked_at = nil
 	end
 
 
 	######
 	public
 	######
+
+	### Lock the job. Raises an exception if this method is called outside of a transaction.
+	def lock
+		raise LAIKA::GroundControl::LockingError, "jobs must be locked in a transaction" unless
+			self.db.in_transaction?
+		raise LAIKA::GroundControl::LockingError, "job is already locked" if
+			self.locked_at
+
+		self.locked_at = Time.now
+		self.save
+	end
+
 
 	### Validation callback.
 	def validate
@@ -50,7 +84,7 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 
 	### Ensure required fields are defined.
 	def validate_required_fields
-		self.validates_presence( [:method_name] )
+		self.validates_presence( [:task_name] )
 	end
 
 
@@ -76,8 +110,8 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	### display in a text interface.
 	def to_s
 		return "%s%s [%s] @%s%s" % [
-			self.method_name,
-			self.arguments || '',
+			self.task_name ? self.task_name.capitalize : '(unknown)',
+			self.task_arguments ? "(#{self.task_arguments.inspect})" : '',
 			self.queue_name,
 			self.created_at,
 			self.locked_at ? ' (in progress)' : '',
