@@ -20,9 +20,11 @@ hoespec = Hoe.spec 'laika-groundcontrol' do
 
 	self.developer 'Michael Granger', 'mgranger@laika.com'
 
+	self.dependency 'laika-base', '~> 3.1'
 	self.dependency 'laika-db', '~> 0.7'
+	self.dependency 'pluginfactory', '~> 1.0'
 
-	self.dependency 'rspec', '~> 2.7', :developer
+	self.dependency 'rspec', '~> 2.11', :developer
 
 	self.require_ruby_version( '>=1.8.7' )
 	self.hg_sign_tags = true if self.respond_to?( :hg_sign_tags= )

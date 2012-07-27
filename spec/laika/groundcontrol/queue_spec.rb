@@ -30,17 +30,17 @@ describe LAIKA::GroundControl::Queue do
 	before( :all ) do
 		setup_logging( :fatal )
 		setup_test_database()
-		LAIKA::GroundControl::Job.create_schema!( :groundcontrol ) # Workaround for Sequel bug
-		LAIKA::GroundControl::Job.create_table!
+		LAIKA::GroundControl::Job.create_schema( :groundcontrol ) unless
+			LAIKA::GroundControl::Job.schema_exists?( :groundcontrol )
+		LAIKA::GroundControl::Job.create_table unless LAIKA::GroundControl::Job.table_exists?
 	end
 
-	after( :each ) do
+	before( :each ) do
 		LAIKA::GroundControl::Job.truncate
 	end
 
 	after( :all ) do
-		LAIKA::GroundControl::Job.drop_table
-		LAIKA::GroundControl::Job.drop_schema( :groundcontrol )
+		LAIKA::GroundControl::Job.truncate
 		cleanup_test_database()
 	end
 
@@ -54,13 +54,13 @@ describe LAIKA::GroundControl::Queue do
 
 	it "ensures that its name is a valid SQL identifier" do
 		expect {
-			described_class.new( "I'm not an identifier you moron." )
-		}.should raise_error( ArgumentError, /invalid identifier/i )
+			described_class.new( "something that's not an identifier" )
+		}.to raise_error( ArgumentError, /invalid identifier/i )
 	end
 
 	it "is able to add a job object to the default queue" do
 		q = described_class.new
-		job = LAIKA::GroundControl::Job.new( :method_name => 'poke the porcupine' )
+		job = LAIKA::GroundControl::Job.new( :task_name => 'poke the porcupine' )
 		q.add( job )
 		q.jobs.should have( 1 ).member
 		q.jobs.first.should be_frozen()
@@ -69,7 +69,7 @@ describe LAIKA::GroundControl::Queue do
 
 	it "is able to add a job to a named queue" do
 		q = described_class.new( 'john_denver' )
-		job = LAIKA::GroundControl::Job.new( :method_name => 'more cowbell' )
+		job = LAIKA::GroundControl::Job.new( :task_name => 'more cowbell' )
 		q.add( job )
 		q.jobs.should have( 1 ).member
 		q.jobs.first.should be_frozen()
@@ -81,7 +81,7 @@ describe LAIKA::GroundControl::Queue do
 		q = described_class.new( 'denver_omelette' )
 		q.add( "clean homesar's room" )
 		job = q.next
-		job.locked_at.should_not be_nil
+		job.locked_at.should_not be_nil()
 	end
 
 	it "blocks until it can fetch a job for execution" do
@@ -98,8 +98,8 @@ describe LAIKA::GroundControl::Queue do
 		q.add( 'are you sleeping?' )
 
 		job = thr.value
-		job.method_name.should == 'are you sleeping?'
-		job.locked_at.should_not be_nil
+		job.task_name.should == 'are you sleeping?'
+		job.locked_at.should_not be_nil()
 	end
 
 	it "can return a list of jobs belonging to itself" do
@@ -111,6 +111,22 @@ describe LAIKA::GroundControl::Queue do
 
 		q.jobs.should have( 1 ).member
 		q.jobs.first.should be_frozen()
+	end
+
+
+	it "can re-add a job" do
+		q = described_class.new
+		q.add( 'test_monkey', hammer: false, spacecraft: true )
+
+		job = q.next
+
+		newjob = q.re_add( job )
+
+		newjob.should_not be( job )
+		newjob.id.should_not == job.id
+		newjob.locked_at.should be_nil()
+		newjob.task_name.should == job.task_name
+		newjob.task_arguments.should == job.task_arguments
 	end
 
 end

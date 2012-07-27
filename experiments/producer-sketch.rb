@@ -17,7 +17,7 @@ loop do
 	$stderr.print "Adding gatherer tasks for hosts:"
 	LAIKA::Netgroup[:workstations].hosts.each do |host|
 		$stderr.print " #{host.cn.first}"
-		job = LAIKA::GroundControl::Job.new( method_name: 'gather', arguments: host.fqdn )
+		job = LAIKA::GroundControl::Job.new( task_name: 'gather', arguments: host.fqdn )
 		queue.add( job )
 	end
 
