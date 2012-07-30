@@ -31,6 +31,10 @@ class LAIKA::GroundControl::Worker
 				self.log.debug "  reset. (FD: %d)" % [ conn.socket ]
 			end
 
+			LAIKA::GroundControl::WorkerDaemon::QUEUE_SIGS.each do |sig|
+				Signal.trap( sig, :DEFAULT )
+			end
+
 			begin
 				self.new( queue ).run
 			ensure
