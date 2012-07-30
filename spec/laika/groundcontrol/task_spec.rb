@@ -44,8 +44,46 @@ describe LAIKA::GroundControl::Task do
 	end
 
 
-	
+	it "is an abstract class" do
+		expect { described_class.new }.to raise_error( NoMethodError, /private method/i )
+	end
 
+
+	context "a subclass" do
+
+		before( :each ) do
+			@subclass = Class.new( described_class ) do
+				def self::name; "DoSomeStuff"; end
+			end
+		end
+
+		it "needs to override on_startup" do
+			expect {
+				@subclass.new( :queue, :job ).on_startup
+			}.to raise_error( NotImplementedError, /#on_startup/i )
+		end
+
+		it "needs to override on_startup" do
+			expect {
+				@subclass.new( :queue, :job ).run
+			}.to raise_error( NotImplementedError, /#run/i )
+		end
+
+
+		it "stringifies with a human-readable description" do
+			@subclass.new( :queue, :job ).to_s.should == "Do Some Stuff"
+		end	
+
+
+		it "provides an extension point for subclasses to override their descriptions" do
+			@subclass.class_eval do
+				def description; "ping host 'breznev'"; end
+			end
+
+			@subclass.new( :queue, :job ).to_s.should == "Do Some Stuff: ping host 'breznev'"
+		end
+
+	end
 
 end
 

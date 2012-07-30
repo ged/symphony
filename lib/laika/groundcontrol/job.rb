@@ -106,6 +106,12 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	end
 
 
+	### Fetch the LAIKA::GroundControl::Task subclass associated with this job.
+	def task_class
+		return LAIKA::GroundControl::Task.get_subclass( self.task_name )
+	end
+
+
 	### Return a human-readable representation of the object suitable for 
 	### display in a text interface.
 	def to_s

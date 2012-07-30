@@ -1,3 +1,360 @@
 #!/usr/bin/env ruby
 
-abort "you need to write me"
+require 'fcntl'
+require 'loggability'
+require 'configurability'
+
+require 'laika' unless defined?( LAIKA )
+require 'laika/mixins'
+require 'laika/groundcontrol/worker'
+require 'laika/groundcontrol/queue'
+
+LAIKA.require_features( :groundcontrol )
+
+
+# The GroundControl worker daemon. Watches a GroundControl job queue, and runs the tasks
+# contained in the jobs it fetches.
+class LAIKA::GroundControl::WorkerDaemon
+	extend Loggability,
+		   Configurability,
+		   LAIKA::MethodUtilities
+
+
+	# Loggability API -- log to LAIKA's logger
+	log_to :laika
+
+	# Configurability API -- use the 'gcworkerd' section of the config
+	config_key :gcworkerd
+
+
+	# The maximum number of children to have running at any given time
+	DEFAULT_CREW_SIZE = 5
+
+	# Signals we understand
+	QUEUE_SIGS = [ :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
+
+	#
+	# Configurable settings
+	#
+
+	# The maximum number of workers to run
+	singleton_attr_accessor :crew_size
+
+	# The queue to fetch jobs from; nil (the default) means to use the
+	# default job queue.
+	singleton_attr_accessor :job_queue
+
+
+	#
+	# Class methods
+	#
+
+	### Configurability API -- call with the 'gcworkerd' config when the config is
+	### loaded.
+	def self::configure( config=nil )
+		if config
+			self.crew_size = config[:crew_size] if config.key?( :crew_size )
+			self.job_queue = config[:job_queue] if config.key?( :job_queue )
+		else
+			self.crew_size = DEFAULT_CREW_SIZE
+			self.job_queue = nil
+		end
+	end
+
+
+	### Start the daemon.
+	def self::run( argv )
+		# Turn on debug logging unconditionally for now
+		Loggability.level = :debug
+		Loggability.format_with(:color ) if $stdout.tty?
+
+		config = LAIKA.load_config( argv.shift )
+		self.new( config ).run
+	end
+
+
+	#
+	# Instance methods
+	#
+
+	### Create a new WorkerDaemon instance.
+	def initialize( config )
+		@config        = config
+		@crew_size     = self.class.crew_size
+		@queue         = LAIKA::GroundControl::Queue.new( self.class.job_queue )
+
+		@crew_workers  = []
+		@running       = false
+		@shutting_down = false
+
+		# Self-pipe for deferred signal-handling (ala djb: http://cr.yp.to/docs/selfpipe.html)
+		reader, writer = IO.pipe
+		reader.close_on_exec = true
+		writer.close_on_exec = true
+		@selfpipe      = { reader: reader, writer: writer }
+
+		# Set up a global signal queue
+		Thread.main[:signal_queue] = []
+	end
+
+
+	######
+	public
+	######
+
+	# The Array of PIDs of currently-running workers
+	attr_reader :crew_workers
+
+	# The maximum number of children to have running at any given time
+	attr_reader :crew_size
+
+	# A self-pipe for deferred signal-handling
+	attr_reader :selfpipe
+
+	# The LAIKA::GroundControl::Queue that jobs will be fetched from
+	attr_reader :queue
+	
+	# The Configurability::Config object for the current configuration.
+	attr_reader :config
+
+
+	### Returns +true+ if the daemon is still running.
+	def running?
+		return @running
+	end
+
+
+	### Returns +true+ if the daemon is shutting down. 
+	def shutting_down?
+		return @shutting_down
+	end
+
+
+	### Set up the daemon and start running.
+	def run
+		Loggability.level = :debug
+		Loggability.format_with(:color ) if $stdout.tty?
+
+		self.log.info "Starting worker supervisor"
+
+		# Become session leader if we can
+		if Process.euid.zero?
+			sid = Process.setsid
+			self.log.debug "  became session leader of new session: %d" % [ sid ]
+		end
+
+		# Set up signal handlers for common signals
+		self.set_signal_handlers
+
+		# Listen for new jobs and handle them as they come in
+		self.start_handling_jobs
+
+		# Restore the default signal handlers
+		self.reset_signal_handlers
+
+		exit
+	end
+
+
+	### The main loop of the daemon -- wait for signals, children dying, or jobs, and
+	### take appropriate action.
+	def start_handling_jobs
+		@running = true
+
+		while self.running?
+			self.log.debug "Starting supervisor loop..."
+			self.start_missing_children unless self.shutting_down?
+
+			# Wait on the selfpipe for signals
+			self.log.debug "  waiting on the selfpipe..."
+$stderr.puts "BEGIN select"
+			fds = IO.select( [@selfpipe[:reader]], nil, @selfpipe.values, 0 )
+$stderr.puts "END select"
+			begin
+				@selfpipe[:reader].read_nonblock( 11 )
+			rescue Errno::EAGAIN, Errno::EINTR
+				# ignore
+			end
+$stderr.puts "END pipe reader"
+
+			# Look for any signals that arrived and handle them
+$stderr.puts "BEGIN signal queue"
+			self.log.debug "  %d signals in the queue..." % [ Thread.main[:signal_queue].length ]
+			while sig = Thread.main[:signal_queue].shift
+				self.handle_signal( sig )
+			end
+$stderr.puts "END signal queue"
+
+$stderr.puts "BEGIN reaping children..."
+			self.log.debug "  reaping children..."
+			self.reap_children
+$stderr.puts "END reaping children..."
+		end
+
+		self.log.info "Job loop done."
+	rescue => err
+		self.log.fatal "%p in job-handler loop: %s" % [ err.class, err.message ]
+		self.log.debug { '  ' + err.backtrace.join("\n  ") }
+
+	ensure
+		self.stop
+	end
+
+
+	### Wake the main thread up through the self-pipe.
+	### Note: since this is a signal-handler method, it needs to be re-entrant.
+	def wake_up
+$stderr.puts "writing to the selfpipe..."
+		@selfpipe[:writer].write_nonblock('.')
+	rescue Errno::EAGAIN
+$stderr.puts "EAGAIN"
+		# Ignore.
+	rescue Errno::EINTR
+$stderr.puts "EINTR"
+		# Repeated signal. :TODO: Does this need a counter?
+		retry
+	end
+
+
+	### Shut the daemon down gracefully.
+	def stop
+		self.ignore_signals
+		LAIKA::DB.connection.synchronize {|conn| conn.finish }
+
+		self.log.warn "Halting."
+		3.times do |i|
+			self.reap_children
+			sleep( 1 )
+			self.kill_children
+			sleep( 1 )
+			break if self.crew_workers.empty?
+			sleep( 1 )
+		end unless self.crew_workers.empty?
+
+		if !self.crew_workers.empty?
+			self.log.warn "  %d workers remain: sending KILL" % [ self.crew_workers.length ]
+			self.kill_children( :KILL )
+		end
+	end
+
+
+	### Reload the configuration.
+	def reload_config
+		self.log.warn "Reloading config %p" % [ self.config ]
+		self.config.reload
+	end
+
+
+	#########
+	protected
+	#########
+
+	### Set up signal handlers for common signals that will shut down, restart, etc.
+	def set_signal_handlers
+		self.log.debug "Setting up deferred signal handlers."
+		Signal.trap( :INT  ) { Thread.main[:signal_queue] << :INT;  self.wake_up }
+		Signal.trap( :HUP  ) { Thread.main[:signal_queue] << :HUP;  self.wake_up }
+		Signal.trap( :TERM ) { Thread.main[:signal_queue] << :TERM; self.wake_up }
+		Signal.trap( :CHLD ) { self.wake_up }
+	end
+
+
+	### Set all signal handlers to ignore.
+	def ignore_signals
+		Signal.trap( :CHLD, :IGNORE )
+		Signal.trap( :TERM, :IGNORE )
+		Signal.trap( :HUP,  :IGNORE )
+		Signal.trap( :INT,  :IGNORE )
+	end
+
+
+	### Set the signal handlers back to their defaults.
+	def reset_signal_handlers
+		Signal.trap( :CHLD, :DEFAULT )
+		Signal.trap( :TERM, :DEFAULT )
+		Signal.trap( :HUP,  :DEFAULT )
+		Signal.trap( :INT,  :DEFAULT )
+	end
+
+
+	### Handle signals.
+	def handle_signal( sig )
+		self.log.debug "Handling signal %s" % [ sig ]
+		case sig
+		when :INT, :TERM
+			if @running
+				self.log.warn "%s signal: immediate shutdown" % [ sig ]
+				@running = false
+			else
+				self.ignore_signals
+				self.log.warn "%s signal: forceful shutdown" % [ sig ]
+				self.kill_children( :KILL )
+				exit!( 255 )
+			end
+
+		when :HUP
+			self.log.warn "Hangup signal."
+			self.reload_config
+
+		else
+			self.log.warn "Unhandled signal %s" % [ sig ]
+		end
+
+	end
+
+
+
+	### Fill out the work crew with new children if necessary
+	def start_missing_children
+		missing_count = self.crew_size - self.crew_workers.length 
+		return unless missing_count > 0
+
+		self.log.info "Starting %d workers for a crew of %d" % [ missing_count, self.crew_size ]
+
+		missing_count.times do |i|
+			pid = self.start_worker
+			self.log.debug "  started worker %d" % [ pid ]
+			self.crew_workers << pid
+		end
+	end
+
+
+	### Kill all current children with the specified +signal+. Returns +true+ if the signal was
+	### sent to one or more children.
+	def kill_children( signal=:TERM )
+		return false if self.crew_workers.empty?
+
+		self.log.info "Sending %s signal to %d workers: %p." % [ signal, self.crew_workers.length, self.crew_workers ]
+		Process.kill( signal, *self.crew_workers )
+
+		return true
+	rescue Errno::ESRCH
+		self.log.debug "Ignoring signals to unreaped children."
+	end
+
+
+	### Start a new GroundControl::Worker and return its PID.
+	def start_worker
+		return LAIKA::GroundControl::Worker.start( self.queue )
+	end
+
+
+	### Clean up after any children that have died.
+	def reap_children
+		pid, status = Process.waitpid2( -1, Process::WNOHANG )
+		while pid
+			self.log.debug "Child %d exited: %p." % [ pid, status ]
+			self.crew_workers.delete( pid )
+
+			pid, status = Process.waitpid2( -1, Process::WNOHANG )
+		end
+	rescue Errno::ECHILD => err
+		self.log.debug "No more children to reap."
+	end
+
+
+end # class LAIKA::GroundControl::WorkerDaemon
+
+
+LAIKA::GroundControl::WorkerDaemon.run( ARGV ) if __FILE__ == $0
+

@@ -6,7 +6,6 @@ inversion -v0.11.0
 
 pluginfactory -v1.0.8
 clockwork -v0.4.1
-net-ping -v1.5.3
 
 laika-base -v3.1.0 --source http://rubygems.laika.com
 laika-db -v0.7.0  --source http://rubygems.laika.com

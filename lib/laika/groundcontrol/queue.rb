@@ -27,6 +27,7 @@ class LAIKA::GroundControl::Queue
 
 	### Create a new LAIKA::GroundControl::Queue with the given +name+.
 	def initialize( name=DEFAULT_NAME )
+		name ||= DEFAULT_NAME
 		raise ArgumentError, "invalid identifier" unless name =~ /^\w+$/
 		@name = name
 		@dataset = LAIKA::GroundControl::Job.for_queue( self.name )
