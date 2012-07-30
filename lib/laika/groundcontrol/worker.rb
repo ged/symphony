@@ -47,6 +47,8 @@ class LAIKA::GroundControl::Worker
 	### Create a worker that will listen on the specified +queue+ for a job.
 	def initialize( queue )
 		@queue = queue
+		@job = nil
+		@task = nil
 	end
 
 
@@ -57,15 +59,44 @@ class LAIKA::GroundControl::Worker
 	# The queue that the worker watches for work.
 	attr_reader :queue
 
+	# The fetched job.
+	attr_reader :job
+
+	# The running task.
+	attr_reader :task
+
+
+	### Make the application mame
+	def set_app_name
+		name = nil
+
+		if t = self.task
+			name = "GroundControl worker %d: running %s" % [ Process.pid, t ]
+		elsif j = self.job
+			name = "GroundControl worker %d: prepping %s" % [ Process.pid, j ]
+		else
+			name = "GroundControl worker %d: waiting for a job" % [ Process.pid ]
+		end
+
+		LAIKA::DB.connection.run( %{SET application_name TO '#{name.dump}'} )
+		$0 = name
+	end
+
 
 	### Run the worker by waiting for a job, running the task the job specifies,
 	### then exiting with a status that indicates the job's success or failure.
 	def run
-		job = self.wait_for_job
-		task = job.task_class.new( self.queue, job )		
-		self.run_task( task )
+		self.set_app_name
+		@job = self.wait_for_job
+
+		self.set_app_name
+		@task = job.task_class.new( self.queue, @job )
+
+		self.set_app_name
+		self.run_task( @task )
 	rescue => err
 		self.log.fatal "%p in worker %d: %s" % [ err.class, Process.pid, err.message ]
+		self.log.debug { '  ' + err.backtrace.join("  \n") }
 		exit!
 	end
 
