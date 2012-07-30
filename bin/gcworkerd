@@ -165,37 +165,27 @@ class LAIKA::GroundControl::WorkerDaemon
 	def start_handling_jobs
 		@running = true
 
+		self.log.debug "Starting supervisor loop..."
 		while self.running?
-			self.log.debug "Starting supervisor loop..."
 			self.start_missing_children unless self.shutting_down?
 
 			# Wait on the selfpipe for signals
-			self.log.debug "  waiting on the selfpipe..."
-$stderr.puts "BEGIN select"
 			fds = IO.select( [@selfpipe[:reader]], nil, @selfpipe.values, 0 )
-$stderr.puts "END select"
 			begin
 				@selfpipe[:reader].read_nonblock( 11 )
 			rescue Errno::EAGAIN, Errno::EINTR
 				# ignore
 			end
-$stderr.puts "END pipe reader"
 
 			# Look for any signals that arrived and handle them
-$stderr.puts "BEGIN signal queue"
-			self.log.debug "  %d signals in the queue..." % [ Thread.main[:signal_queue].length ]
 			while sig = Thread.main[:signal_queue].shift
 				self.handle_signal( sig )
 			end
-$stderr.puts "END signal queue"
 
-$stderr.puts "BEGIN reaping children..."
-			self.log.debug "  reaping children..."
 			self.reap_children
-$stderr.puts "END reaping children..."
 		end
+		self.log.info "Supervisor job loop done."
 
-		self.log.info "Job loop done."
 	rescue => err
 		self.log.fatal "%p in job-handler loop: %s" % [ err.class, err.message ]
 		self.log.debug { '  ' + err.backtrace.join("\n  ") }
@@ -265,19 +255,21 @@ $stderr.puts "EINTR"
 
 	### Set all signal handlers to ignore.
 	def ignore_signals
+		self.log.debug "Ignoring signals."
 		QUEUE_SIGS.each do |sig|
 			Signal.trap( sig, :IGNORE )
 		end
-		Signal.trap( :INT,  :IGNORE )
+		Signal.trap( :CHLD, :IGNORE )
 	end
 
 
 	### Set the signal handlers back to their defaults.
 	def reset_signal_handlers
+		self.log.debug "Restoring default signal handlers."
 		QUEUE_SIGS.each do |sig|
 			Signal.trap( sig, :DEFAULT )
 		end
-		Signal.trap( :INT,  :DEFAULT )
+		Signal.trap( :CHLD, :DEFAULT )
 	end
 
 
