@@ -28,6 +28,8 @@ describe 'LAIKA::GroundControl::Job' do
 
 	before( :all ) do
 		setup_logging( :fatal )
+		@real_taskclasses = LAIKA::GroundControl::Task.derivatives.dup
+
 		setup_test_database()
 		LAIKA::GroundControl::Job.create_schema( :groundcontrol ) unless
 			LAIKA::GroundControl::Job.schema_exists?( :groundcontrol )
@@ -36,11 +38,13 @@ describe 'LAIKA::GroundControl::Job' do
 
 	before( :each ) do
 		LAIKA::GroundControl::Job.truncate
+		LAIKA::GroundControl::Task.derivatives.clear
 	end
 
 	after( :all ) do
 		LAIKA::GroundControl::Job.truncate
 		cleanup_test_database()
+		LAIKA::GroundControl::Task.derivatives.replace( @real_taskclasses )
 	end
 
 
@@ -108,7 +112,22 @@ describe 'LAIKA::GroundControl::Job' do
 		job.to_s.should =~ /AssetCataloger \[#{job.queue_name}\] @#{job.created_at} \(in progress\)/i
 	end
 
-	
+	it "can fetch an instance of the task it's supposed to run" do
+		taskclass = nil
+		job = LAIKA::GroundControl::Job.create( :task_name => 'assetcataloger' )
+		LAIKA::GroundControl::Task.should_receive( :require ).
+			with( 'laika/groundcontrol/tasks/assetcataloger_task' ).
+			and_return {
+				taskclass = Class.new( LAIKA::GroundControl::Task ) {
+					def self::name; "AssetCataloger"; end
+				}
+				LAIKA::GroundControl::Task.derivatives[ 'assetcataloger' ] = taskclass
+			}
+
+		klass = job.task_class
+		klass.should be( taskclass )
+
+	end
 
 end
 
