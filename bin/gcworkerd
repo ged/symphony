@@ -31,7 +31,11 @@ class LAIKA::GroundControl::WorkerDaemon
 	DEFAULT_CREW_SIZE = 5
 
 	# Signals we understand
-	QUEUE_SIGS = [ :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
+	QUEUE_SIGS = [ 
+		:QUIT, :INT, :TERM, :HUP, 
+		# :TODO: :WINCH, :USR1, :USR2, :TTIN, :TTOU 
+	]
+
 
 	#
 	# Configurable settings
@@ -252,27 +256,27 @@ $stderr.puts "EINTR"
 	### Set up signal handlers for common signals that will shut down, restart, etc.
 	def set_signal_handlers
 		self.log.debug "Setting up deferred signal handlers."
-		Signal.trap( :INT  ) { Thread.main[:signal_queue] << :INT;  self.wake_up }
-		Signal.trap( :HUP  ) { Thread.main[:signal_queue] << :HUP;  self.wake_up }
-		Signal.trap( :TERM ) { Thread.main[:signal_queue] << :TERM; self.wake_up }
+		QUEUE_SIGS.each do |sig|
+			Signal.trap( sig ) { Thread.main[:signal_queue] << sig; self.wake_up }
+		end
 		Signal.trap( :CHLD ) { self.wake_up }
 	end
 
 
 	### Set all signal handlers to ignore.
 	def ignore_signals
-		Signal.trap( :CHLD, :IGNORE )
-		Signal.trap( :TERM, :IGNORE )
-		Signal.trap( :HUP,  :IGNORE )
+		QUEUE_SIGS.each do |sig|
+			Signal.trap( sig, :IGNORE )
+		end
 		Signal.trap( :INT,  :IGNORE )
 	end
 
 
 	### Set the signal handlers back to their defaults.
 	def reset_signal_handlers
-		Signal.trap( :CHLD, :DEFAULT )
-		Signal.trap( :TERM, :DEFAULT )
-		Signal.trap( :HUP,  :DEFAULT )
+		QUEUE_SIGS.each do |sig|
+			Signal.trap( sig, :DEFAULT )
+		end
 		Signal.trap( :INT,  :DEFAULT )
 	end
 
