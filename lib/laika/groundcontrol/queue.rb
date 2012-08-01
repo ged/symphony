@@ -45,7 +45,7 @@ class LAIKA::GroundControl::Queue
 	attr_reader :dataset
 
 
-	### Add the specified +job+ to the queue. The +job+ can be either a 
+	### Add the specified +job+ to the queue. The +job+ can be either a
 	### LAIKA::GroundControl::Job, or a string that can be used to instantate
 	### one. Returns the LAIKA::GroundControl::Job that was added.
 	def add( job, *arguments )
@@ -55,7 +55,7 @@ class LAIKA::GroundControl::Queue
 		job.save
 
 		return job
-	end	
+	end
 
 
 	### Add a new copy of the given +job+ to the receiving queue, and returns the new
@@ -95,7 +95,7 @@ class LAIKA::GroundControl::Queue
 		end
 
 		self.log.debug "  returning with job: %p" % [ job ]
-		job.freeze
+		# job.freeze # FIXME:  why?
 
 		return job
 	end

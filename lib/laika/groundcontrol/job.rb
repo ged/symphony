@@ -34,12 +34,12 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	def_dataset_method( :for_queue ) {|queue_name| filter(:queue_name => queue_name) }
 	def_dataset_method( :locked ) { filter(:locked_at) }
 	singleton_method_alias :in_progress, :locked
-	
+
 
 	# Dont allow writes to the 'locked_at' columns via mass updates
 	set_restricted_columns :locked_at
 
-	# Serialize the job's arguments as JSON
+	# Serialize the job's arguments as a ruby object
 	serialize_attributes :marshal, :task_arguments
 
 
@@ -112,7 +112,7 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	end
 
 
-	### Return a human-readable representation of the object suitable for 
+	### Return a human-readable representation of the object suitable for
 	### display in a text interface.
 	def to_s
 		return "%s%s [%s] @%s%s" % [

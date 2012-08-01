@@ -102,7 +102,7 @@ describe 'LAIKA::GroundControl::Job' do
 			end
 		}.to raise_error( LAIKA::GroundControl::LockingError, /already locked/i )
 	end
-	
+
 	it "stringifies correctly after being locked" do
 		job = LAIKA::GroundControl::Job.create( :task_name => 'assetcataloger' )
 		LAIKA::GroundControl::Job.db.transaction do

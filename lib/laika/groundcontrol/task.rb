@@ -35,9 +35,6 @@ class LAIKA::GroundControl::Task
 	attr_reader :job
 
 
-	### Task API -- callback called when the task first starts up, before it is run. 
-	pure_virtual :on_startup
-
 
 	### Task API -- the main logic of the Task goes here.
 	pure_virtual :run
@@ -57,6 +54,11 @@ class LAIKA::GroundControl::Task
 	end
 
 
+	### Task API -- callback called when the task first starts up, before it is run.
+	def on_startup
+	end
+
+
 	### Task API -- callback called if the task completes normally.
 	def on_completion
 	end
@@ -70,7 +72,7 @@ class LAIKA::GroundControl::Task
 
 
 	### Provide details for the human-readable description. By default, just returns
-	### +nil+, which will mean the string will only contain the description derived from 
+	### +nil+, which will mean the string will only contain the description derived from
 	### the task class.
 	def description
 		return nil
@@ -79,10 +81,11 @@ class LAIKA::GroundControl::Task
 
 	### Stringify the task as a description.
 	def to_s
-		class_desc = self.class.name.scan( /((?:\b|[A-Z])[^A-Z]+)/ ).join( ' ' )
+		class_desc = self.class.name.scan( /((?:\b|[A-Z])[^A-Z]+)/ ).
+			flatten.map{|c| c.sub( '::', '' )}.join( ' ' )
 		detail_desc = self.description
 		return "%s%s" % [ class_desc, detail_desc ? ": #{detail_desc}" : '' ]
-	end		
+	end
 
 end # class LAIKA::GroundControl::Queue
 
