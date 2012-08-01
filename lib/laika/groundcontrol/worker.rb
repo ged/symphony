@@ -66,7 +66,7 @@ class LAIKA::GroundControl::Worker
 	attr_reader :task
 
 
-	### Make the application mame
+	### Make the application name
 	def set_app_name
 		name = nil
 
@@ -94,14 +94,15 @@ class LAIKA::GroundControl::Worker
 
 		self.set_app_name
 		self.run_task( @task )
-	rescue => err
+	rescue Exception => err
 		self.log.fatal "%p in worker %d: %s" % [ err.class, Process.pid, err.message ]
 		self.log.debug { '  ' + err.backtrace.join("  \n") }
+		@job.destroy unless @task
 		exit!
 	end
 
 
-	### Wait 
+	### Wait
 	def wait_for_job
 		self.log.info "Waiting for job"
 		return self.queue.next

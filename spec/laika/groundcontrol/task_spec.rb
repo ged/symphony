@@ -57,13 +57,7 @@ describe LAIKA::GroundControl::Task do
 			end
 		end
 
-		it "needs to override on_startup" do
-			expect {
-				@subclass.new( :queue, :job ).on_startup
-			}.to raise_error( NotImplementedError, /#on_startup/i )
-		end
-
-		it "needs to override on_startup" do
+		it "needs to override run" do
 			expect {
 				@subclass.new( :queue, :job ).run
 			}.to raise_error( NotImplementedError, /#run/i )
@@ -72,7 +66,7 @@ describe LAIKA::GroundControl::Task do
 
 		it "stringifies with a human-readable description" do
 			@subclass.new( :queue, :job ).to_s.should == "Do Some Stuff"
-		end	
+		end
 
 
 		it "provides an extension point for subclasses to override their descriptions" do

@@ -31,9 +31,9 @@ class LAIKA::GroundControl::WorkerDaemon
 	DEFAULT_CREW_SIZE = 5
 
 	# Signals we understand
-	QUEUE_SIGS = [ 
-		:QUIT, :INT, :TERM, :HUP, 
-		# :TODO: :WINCH, :USR1, :USR2, :TTIN, :TTOU 
+	QUEUE_SIGS = [
+		:QUIT, :INT, :TERM, :HUP,
+		# :TODO: :WINCH, :USR1, :USR2, :TTIN, :TTOU
 	]
 
 
@@ -117,7 +117,7 @@ class LAIKA::GroundControl::WorkerDaemon
 
 	# The LAIKA::GroundControl::Queue that jobs will be fetched from
 	attr_reader :queue
-	
+
 	# The Configurability::Config object for the current configuration.
 	attr_reader :config
 
@@ -128,7 +128,7 @@ class LAIKA::GroundControl::WorkerDaemon
 	end
 
 
-	### Returns +true+ if the daemon is shutting down. 
+	### Returns +true+ if the daemon is shutting down.
 	def shutting_down?
 		return @shutting_down
 	end
@@ -198,13 +198,13 @@ class LAIKA::GroundControl::WorkerDaemon
 	### Wake the main thread up through the self-pipe.
 	### Note: since this is a signal-handler method, it needs to be re-entrant.
 	def wake_up
-$stderr.puts "writing to the selfpipe..."
+		$stderr.puts "writing to the selfpipe..."
 		@selfpipe[:writer].write_nonblock('.')
 	rescue Errno::EAGAIN
-$stderr.puts "EAGAIN"
+		$stderr.puts "EAGAIN"
 		# Ignore.
 	rescue Errno::EINTR
-$stderr.puts "EINTR"
+		$stderr.puts "EINTR"
 		# Repeated signal. :TODO: Does this need a counter?
 		retry
 	end
@@ -302,7 +302,7 @@ $stderr.puts "EINTR"
 
 	### Fill out the work crew with new children if necessary
 	def start_missing_children
-		missing_count = self.crew_size - self.crew_workers.length 
+		missing_count = self.crew_size - self.crew_workers.length
 		return unless missing_count > 0
 
 		self.log.info "Starting %d workers for a crew of %d" % [ missing_count, self.crew_size ]
