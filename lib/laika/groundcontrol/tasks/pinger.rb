@@ -2,7 +2,7 @@
 
 require 'socket'
 require 'timeout'
-require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl )
+require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 
 
 ### A proof-of-concept task to determine the network availability of a host.
