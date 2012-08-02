@@ -32,7 +32,20 @@ if ARGV.empty?
 	end
 
 else
+
 	job = LAIKA::GroundControl::Job.new( task_name: 'pinger', task_arguments: ARGV.shift )
+
+	# job = LAIKA::GroundControl::Job.new( task_name: 'ssh', task_arguments: {
+	#     :hostname => ARGV.shift,
+	#     :command  => ARGV.shift
+	# })
+
+	# job = LAIKA::GroundControl::Job.new( task_name: 'sshscript', task_arguments: {
+	#     :hostname   => ARGV.shift,
+	#     :command    => '/home/mahlon/test_script.sh',
+	#     :attributes => { :blah => "YEAH!!!!" }
+	# })
+
 	queue.add( job )
 end
 
