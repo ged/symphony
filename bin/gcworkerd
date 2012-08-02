@@ -217,7 +217,7 @@ class LAIKA::GroundControl::WorkerDaemon
 
 		self.log.warn "Halting."
 		3.times do |i|
-			self.reap_children
+			self.reap_children( *self.crew_workers )
 			sleep( 1 )
 			self.kill_children
 			sleep( 1 )
@@ -225,6 +225,8 @@ class LAIKA::GroundControl::WorkerDaemon
 			sleep( 1 )
 		end unless self.crew_workers.empty?
 
+		# Give up on our remaining children.
+		Signal.trap( :CHLD, :IGNORE )
 		if !self.crew_workers.empty?
 			self.log.warn "  %d workers remain: sending KILL" % [ self.crew_workers.length ]
 			self.kill_children( :KILL )
@@ -259,7 +261,6 @@ class LAIKA::GroundControl::WorkerDaemon
 		QUEUE_SIGS.each do |sig|
 			Signal.trap( sig, :IGNORE )
 		end
-		Signal.trap( :CHLD, :IGNORE )
 	end
 
 
@@ -336,13 +337,25 @@ class LAIKA::GroundControl::WorkerDaemon
 
 
 	### Clean up after any children that have died.
-	def reap_children
-		pid, status = Process.waitpid2( -1, Process::WNOHANG )
-		while pid
-			self.log.debug "Child %d exited: %p." % [ pid, status ]
-			self.crew_workers.delete( pid )
-
+	def reap_children( *pids )
+		if pids.empty?
 			pid, status = Process.waitpid2( -1, Process::WNOHANG )
+			while pid
+				self.log.debug "Child %d exited: %p." % [ pid, status ]
+				self.crew_workers.delete( pid )
+
+				pid, status = Process.waitpid2( -1, Process::WNOHANG )
+			end
+		else
+			pids.each do |pid|
+				spid, status = Process.waitpid2( pid )
+				if spid
+					self.crew_workers.delete( spid )
+					self.log.debug "Child %d exited: %p." % [ spid, status ]
+				else
+					self.log.debug "Child %d no reapy." % [ pid ]
+				end
+			end
 		end
 	rescue Errno::ECHILD => err
 		self.log.debug "No more children to reap."
