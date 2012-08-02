@@ -5,7 +5,7 @@ require 'timeout'
 require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl )
 
 
-# Queueing logic for GroundControl jobs.
+### A proof-of-concept task to determine the network availability of a host.
 class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 
 	extend Loggability
@@ -76,5 +76,5 @@ class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 		end
 	end
 
-end # class LAIKA::GroundControl::Queue
+end # class LAIKA::GroundControl::Task::Pinger
 
