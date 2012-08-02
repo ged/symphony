@@ -1,16 +1,21 @@
 #!/usr/bin/env ruby
 
-require 'open3'
-require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl )
+require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 
 
 ### A base SSH class for connecting to remote hosts, running commands,
 ### and collecting output.
 class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
+	extend Loggability,
+	       Configurability,
+	       LAIKA::MethodUtilities
 
-	extend Loggability, Configurability
+	# Loggability API -- log to the laika logger
 	log_to :laika
+
+	# Configurability API -- configure via the 'task_ssh' section of the config
 	config_key :task_ssh
+
 
 	# The default path to the ssh binary.
 	@path = '/usr/bin/ssh'
@@ -25,9 +30,13 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 		'-o', 'StrictHostKeyChecking=no'
 	]
 
-	class << self
-		attr_accessor :path, :ssh_args
-	end
+
+	# The path the the ssh binary
+	singleton_attr_accessor :path
+
+	# The arguments to the ssh binary
+	singleton_attr_accessor :ssh_args
+
 
 	### Configurability API
 	def self::configure( config )
@@ -61,12 +70,10 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 	# The command to run on the remote host.
 	attr_reader :command
 
-	# A public key that's expected to be installed on the remote
-	# host(s).
+	# The key to use for authentication.
 	attr_reader :key
 
-	# Overrides the default SSH port should the remote host not be
-	# listening on the default port.
+	# The remote ssh port.
 	attr_reader :port
 
 	# Connect to the remote host as this user. Defaults to 'root'.
@@ -75,8 +82,13 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 
 	### Call ssh and capture output.
 	def run
-		@return_value = self.spawn do |stdin, stdout, _|
-			@output = self.run_command( stdin, stdout, self.command )
+		@return_value = self.open_connection do |reader, writer|
+			self.log.debug "Writing command #{self.command}..."
+			writer.puts( self.command )
+			self.log.debug "  closing child's writer."
+			writer.close
+			self.log.debug "  reading from child."
+			reader.read
 		end
 	end
 
@@ -93,9 +105,8 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 
 	### Call ssh and yield the remote IO objects to the caller,
 	### cleaning up afterwards.
-	def spawn
+	def open_connection
 		raise LocalJumpError, "no block given" unless block_given?
-		return_value = nil
 
 		cmd = []
 		cmd << self.class.path
@@ -108,19 +119,19 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 		cmd.flatten!
 		self.log.debug "Running SSH command with: %p" % [ cmd ]
 
-		Open3.popen3( *cmd ) do |stdin, stdout, stderr, thread|
-			yield( stdin, stdout, stderr )
-			return_value = thread.value
-		end
+		parent_reader, child_writer = IO.pipe
+		child_reader, parent_writer = IO.pipe
 
-		return return_value
-	end
+		pid = spawn( *cmd, :out => child_writer, :in => child_reader, :close_others => true )
+		child_writer.close
+		child_reader.close
 
-	### Sends a command and closes remote half of the pipe
-	def run_command( stdin, stdout, command )
-		stdin.puts( command )
-		stdin.close
-		return stdout.read
+		self.log.debug "Yielding back to the run block."
+		@output = yield( parent_reader, parent_writer )
+		self.log.debug "  run block done."
+
+		pid, status = Process.waitpid2( pid )
+		return status
 	end
 
 end # class LAIKA::GroundControl::Task::SSH
