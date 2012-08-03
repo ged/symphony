@@ -68,9 +68,7 @@ class LAIKA::GroundControl::WorkerDaemon
 
 	### Start the daemon.
 	def self::run( argv )
-		# Turn on debug logging unconditionally for now
-		Loggability.level = :debug
-		Loggability.format_with(:color ) if $stdout.tty?
+		Loggability.format_with( :color ) if $stdout.tty?
 
 		config = LAIKA.load_config( argv.shift )
 		self.new( config ).run
@@ -136,8 +134,8 @@ class LAIKA::GroundControl::WorkerDaemon
 
 	### Set up the daemon and start running.
 	def run
-		Loggability.level = :debug
-		Loggability.format_with(:color ) if $stdout.tty?
+		# Loggability.level = :debug
+		Loggability.format_with( :color ) if $stdout.tty?
 
 		self.log.info "Starting worker supervisor"
 
@@ -198,7 +196,6 @@ class LAIKA::GroundControl::WorkerDaemon
 	### Wake the main thread up through the self-pipe.
 	### Note: since this is a signal-handler method, it needs to be re-entrant.
 	def wake_up
-		$stderr.puts "writing to the selfpipe..."
 		@selfpipe[:writer].write_nonblock('.')
 	rescue Errno::EAGAIN
 		$stderr.puts "EAGAIN"
