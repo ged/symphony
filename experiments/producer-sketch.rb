@@ -7,7 +7,7 @@ $stderr.sync = true
 # A little sketch of how GroundControl's API should work.
 
 LAIKA.require_features( :ldap, :groundcontrol )
-LAIKA.load_config( '../../etc/config.yml' )
+LAIKA.load_config( ARGV.shift )
 
 queue = LAIKA::GroundControl.default_queue
 Sequel.extension( :pretty_table )
@@ -33,18 +33,19 @@ if ARGV.empty?
 
 else
 
-	job = LAIKA::GroundControl::Job.new( task_name: 'pinger', task_arguments: ARGV.shift )
+	# job = LAIKA::GroundControl::Job.new( task_name: 'pinger', task_arguments: ARGV.shift )
 
 	# job = LAIKA::GroundControl::Job.new( task_name: 'ssh', task_arguments: {
 	#     :hostname => ARGV.shift,
 	#     :command  => ARGV.shift
 	# })
 
-	# job = LAIKA::GroundControl::Job.new( task_name: 'sshscript', task_arguments: {
-	#     :hostname   => ARGV.shift,
-	#     :command    => '/home/mahlon/test_script.sh',
-	#     :attributes => { :blah => "YEAH!!!!" }
-	# })
+	job = LAIKA::GroundControl::Job.new( task_name: 'sshscript', task_arguments: {
+		:hostname   => ARGV.shift,
+		:script     => ARGV.shift,
+		:key        => '/Users/mgranger/.ssh/id_rsa',
+		:attributes => { :blah => "YEAH!!!!" }
+	})
 
 	queue.add( job )
 end
