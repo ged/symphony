@@ -23,6 +23,9 @@ hoespec = Hoe.spec 'laika-groundcontrol' do
 	self.dependency 'laika-base', '~> 3.1'
 	self.dependency 'laika-db', '~> 0.7'
 	self.dependency 'pluginfactory', '~> 1.0'
+	self.dependency 'inversion', '~> 0.11'
+	self.dependency 'net-ssh', '~> 2.5'
+	self.dependency 'net-sftp', '~> 2.0'
 
 	self.dependency 'rspec', '~> 2.11', :developer
 

@@ -95,7 +95,6 @@ class LAIKA::GroundControl::Queue
 		end
 
 		self.log.debug "  returning with job: %p" % [ job ]
-
 		return job
 	end
 
