@@ -115,9 +115,8 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	### Return a human-readable representation of the object suitable for
 	### display in a text interface.
 	def to_s
-		return "%s%s [%s] @%s%s" % [
+		return "%s [%s] @%s%s" % [
 			self.task_name ? self.task_name.capitalize : '(unknown)',
-			self.task_arguments ? "(#{self.task_arguments.inspect})" : '',
 			self.queue_name,
 			self.created_at,
 			self.locked_at ? ' (in progress)' : '',

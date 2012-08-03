@@ -71,11 +71,11 @@ class LAIKA::GroundControl::Worker
 		name = nil
 
 		if t = self.task
-			name = "GroundControl worker %d: running %s" % [ Process.pid, t ]
+			name = "GroundControl worker: running %s" % [ t ]
 		elsif j = self.job
-			name = "GroundControl worker %d: prepping %s" % [ Process.pid, j ]
+			name = "GroundControl worker: prepping %s" % [ j ]
 		else
-			name = "GroundControl worker %d: waiting for a job" % [ Process.pid ]
+			name = "GroundControl worker: waiting for a job"
 		end
 
 		LAIKA::DB.connection.run( %{SET application_name TO '#{name.dump}'} )
@@ -90,7 +90,7 @@ class LAIKA::GroundControl::Worker
 		@job = self.wait_for_job
 
 		self.set_app_name
-		@task = job.task_class.new( self.queue, @job )
+		@task = @job.task_class.new( self.queue, @job )
 
 		self.set_app_name
 		self.run_task( @task )
@@ -98,7 +98,6 @@ class LAIKA::GroundControl::Worker
 		self.log.fatal "%p in worker %d: %s" % [ err.class, Process.pid, err.message ]
 		self.log.debug { '  ' + err.backtrace.join("  \n") }
 		@job.destroy unless @task
-		exit!
 	end
 
 
@@ -113,8 +112,9 @@ class LAIKA::GroundControl::Worker
 	def run_task( task )
 		task.on_startup
 		task.run
-	rescue => err
+	rescue Exception => err
 		self.log.error "%p while running %s: %s" % [ err.class, task, err.message ]
+		self.log.debug { '  ' + err.backtrace.join("  \n") }
 		task.on_error( err )
 	else
 		self.log.info "Ran %s successfully." % [ task ]

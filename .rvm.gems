@@ -3,6 +3,8 @@
 foreman -v0.53.0
 hoe-deveiate -v0.1.1
 inversion -v0.11.0
+net-ssh -v2.5.2
+net-sftp -v2.0.5
 
 pluginfactory -v1.0.8
 clockwork -v0.4.1
