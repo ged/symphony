@@ -198,10 +198,8 @@ class LAIKA::GroundControl::WorkerDaemon
 	def wake_up
 		@selfpipe[:writer].write_nonblock('.')
 	rescue Errno::EAGAIN
-		$stderr.puts "EAGAIN"
 		# Ignore.
 	rescue Errno::EINTR
-		$stderr.puts "EINTR"
 		# Repeated signal. :TODO: Does this need a counter?
 		retry
 	end
