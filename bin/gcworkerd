@@ -301,7 +301,7 @@ class LAIKA::GroundControl::WorkerDaemon
 		missing_count = self.crew_size - self.crew_workers.length
 		return unless missing_count > 0
 
-		self.log.info "Starting %d workers for a crew of %d" % [ missing_count, self.crew_size ]
+		self.log.debug "Starting %d workers for a crew of %d" % [ missing_count, self.crew_size ]
 
 		missing_count.times do |i|
 			pid = self.start_worker

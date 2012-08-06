@@ -7,7 +7,20 @@ require 'inversion'
 require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 
 
-### A class to stream and execute a script on a remote host via SSH.
+# A task to execute a script on a remote host via SSH.
+#
+#   require 'laika'
+#
+#   LAIKA.require_features( :groundcontrol )
+#   LAIKA.load_config( 'config.yml' )
+#
+#   queue = LAIKA::GroundControl.default_queue
+#   queue.add( 'sshscript',
+#              hostname: 'roke',
+#              template: 'fbsd-inventory.rb',
+#              key: "#{datadir}/laika-inventory/inventory.rsa",
+#              attributes: { inventorykey: '0f2dbe12c982248662f3dafcab2aade1'} )
+#
 class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	extend Loggability,
 	       LAIKA::MethodUtilities
@@ -41,22 +54,18 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	### Create a new SSH task for the given +job+ and +queue+.
 	def initialize( queue, job )
 		super
-		opts = self.job.task_arguments
+		opts = self.job.task_arguments.shift || {}
+		self.log.debug "Task options: %p" % [ opts ]
 
-		# :TODO: Script arguments?
 		# required arguments
 		@hostname = opts[:hostname] or raise ArgumentError, "no hostname specified"
-		@script   = opts[:script]   or raise ArgumentError, "no script template specified"
+		@template = opts[:template] or raise ArgumentError, "no script template specified"
 		@key      = opts[:key]      or raise ArgumentError, "no private key specified"
 
 		# optional arguments
 		@port            = opts[:port] || 22
 		@user            = opts[:user] || 'root'
 		@attributes      = opts[:attributes] || {}
-
-		# Runtime state
-		@ssh_conn        = nil
-		@remote_filename = nil
 	end
 
 
@@ -67,8 +76,8 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	# The name of the host to connect to
 	attr_reader :hostname
 
-	# The rendered script string.
-	attr_accessor :script
+	# The path to the script template
+	attr_accessor :template
 
 	# The path to the SSH key to use for auth
 	attr_reader :key
@@ -82,44 +91,19 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	# Attributes that will be set on the script template.
 	attr_reader :attributes
 
-	# The Net::SSH::Session object used by the task
-	attr_accessor :ssh_conn
-
-	# The remote filename the script will be written to
-	attr_accessor :remote_filename
-
-
-	### Find and 'compile' the script template, and connect to the remote host.
-	def on_startup
-		taskname = self.class.name.sub( /.*::/, '' ).downcase + 
-			'-' + self.hostname.sub( /\..*/, '' ) + '-'
-		self.remote_filename = Dir::Tmpname.make_tmpname( taskname, 'script' )
-
-		# Load the script template and render it into the script to run
-		self.script = Inversion::Template.load( self.script, TEMPLATE_OPTS )
-		self.script.attributes.merge!( self.attributes )
-		self.script.task_arguments = self.job.task_arguments
-		self.script.job = self.job.to_s
-		self.script.queue = self.job.queue_name
-
-		# Establish the SSH connection
-		ssh_options = DEFAULT_SSH_OPTIONS.merge( :port => self.port, :keys => [self.key] )
-		self.ssh_conn = Net::SSH.start( self.hostname, self.user, ssh_options )
-	end
-
 
 	### Load the script as an Inversion template, sending and executing
 	### it on the remote host.
 	def run
-		self.upload_script( self.ssh_conn, self.script, self.remote_filename )
-		self.run_script( self.ssh_conn, self.remote_filename )
-	end
+		remote_filename = self.make_remote_filename
+		source = self.generate_script
 
-
-	### Close the ssh connection.
-	def on_shutdown
-		self.ssh_conn.close if self.ssh_conn && !self.ssh_conn.closed?
-		super
+		# Establish the SSH connection
+		ssh_options = DEFAULT_SSH_OPTIONS.merge( :port => self.port, :keys => [self.key] )
+		Net::SSH.start( self.hostname, self.user, ssh_options ) do |conn|
+			self.upload_script( conn, source, remote_filename )
+			self.run_script( conn, remote_filename )
+		end
 	end
 
 
@@ -127,11 +111,41 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	protected
 	#########
 
+	# Running script 'test_script' on 'roke.pg.laika.com:22' as 'inventory'
+
+	### Return a human-readable description of details of the task.
+	def description
+		return "Running script '%s' on '%s:%d' as '%s'" % [
+			File.basename( self.template ),
+			self.hostname,
+			self.port,
+			self.user,
+		]
+	end
+
+
+	### Generate a unique filename for the script on the remote host.
+	def make_remote_filename
+		template = self.template
+		basename = File.basename( template, File.extname(template) )
+		return Dir::Tmpname.make_tmpname( basename, Process.pid )
+	end
+
+
+	### Generate a script by loading the script template, populating it with
+	### attributes, and rendering it.
+	def generate_script
+		tmpl = Inversion::Template.load( self.template, TEMPLATE_OPTS )
+
+		tmpl.attributes.merge!( self.attributes )
+		tmpl.task   = self
+
+		return tmpl.render
+	end
+
 	### Render the given +template+ as script source, then use the specified +conn+ object
 	### to upload it.
-	def upload_script( conn, template, remote_filename )
-		source = template.render
-
+	def upload_script( conn, source, remote_filename )
 		self.log.debug "Uploading script (%d bytes) to %s:%s." %
 			[ source.bytesize, self.hostname, remote_filename ]
 		conn.sftp.file.open( remote_filename, "w", 0755 ) do |fh|

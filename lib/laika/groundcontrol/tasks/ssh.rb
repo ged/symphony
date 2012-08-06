@@ -6,12 +6,8 @@ require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 ### A base SSH class for connecting to remote hosts, running commands,
 ### and collecting output.
 class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
-	extend Loggability,
-	       Configurability,
+	extend Configurability,
 	       LAIKA::MethodUtilities
-
-	# Loggability API -- log to the laika logger
-	log_to :laika
 
 	# Configurability API -- configure via the 'task_ssh' section of the config
 	config_key :task_ssh

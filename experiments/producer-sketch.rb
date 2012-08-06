@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'etc'
 require 'laika'
 
 $stderr.sync = true
@@ -18,35 +19,34 @@ if ARGV.empty?
 		$stderr.print "Adding gatherer tasks for hosts:"
 		LAIKA::Netgroup[:workstations].hosts.each do |host|
 			$stderr.print " #{host.cn.first}"
-			job = LAIKA::GroundControl::Job.new( task_name: 'pinger', task_arguments: host.fqdn )
-			queue.add( job )
+			queue.add( 'pinger', hostname: host.fqdn, port: 'ssh' )
 		end
 		$stderr.puts
 
 		started = Time.now
 		$stderr.puts "Pausing job injection..."
 		queue.wait_for_notification( poll: true, timeout: 5 ) do |*|
-			$stderr.puts "%d tasks remain..." % [ queue.dataset.filter( locked_at: nil ).count ]
-			throw :stop if Time.now - started > 5 * 60
+			count = queue.dataset.filter( locked_at: nil ).count
+			$stderr.puts "%d tasks remain..." % [ count ]
+			throw :stop if count < 1
 		end
+
+		$stderr.puts "Pausing for 5s before queuing more jobs."
 	end
 
 else
 
-	# job = LAIKA::GroundControl::Job.new( task_name: 'pinger', task_arguments: ARGV.shift )
+	# queue.add( 'pinger', ARGV.shift )
 
-	# job = LAIKA::GroundControl::Job.new( task_name: 'ssh', task_arguments: {
-	#     :hostname => ARGV.shift,
-	#     :command  => ARGV.shift
-	# })
+	# queue.add( 'ssh', 
+	#            hostname: ARGV.shift,
+	#            command:  ARGV.shift )
 
-	job = LAIKA::GroundControl::Job.new( task_name: 'sshscript', task_arguments: {
-		:hostname   => ARGV.shift,
-		:script     => ARGV.shift,
-		:key        => '/Users/mgranger/.ssh/id_rsa',
-		:attributes => { :blah => "YEAH!!!!" }
-	})
-
-	queue.add( job )
+	recipient = "%s@laika.com" % [ Etc.getlogin ]
+	queue.add( 'sshscript',
+	           hostname:   ARGV.shift,
+	           template:   ARGV.shift,
+	           key:        File.expand_path('~/.ssh/id_rsa'),
+	           attributes: { recipient: recipient } )
 end
 

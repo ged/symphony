@@ -17,6 +17,7 @@ hoespec = Hoe.spec 'laika-groundcontrol' do
 	self.readme_file = 'README.rdoc'
 	self.history_file = 'History.rdoc'
 	self.extra_rdoc_files = FileList[ '*.rdoc' ]
+	self.spec_extras[:rdoc_options] = ['-f', 'fivefish', '-t', 'LAIKA GroundControl']
 
 	self.developer 'Michael Granger', 'mgranger@laika.com'
 

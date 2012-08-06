@@ -1,10 +1,42 @@
 = laika-groundcontrol
 
-* :FIXME: (url)
+wiki:: http://it-trac.laika.com/wiki/Software
+docs:: http://havnor.mdc.laika.com/laika-groundcontrol
+
 
 == Description
 
-:FIXME: (describe your package)
+GroundControl is a job queue and scheduler for LAIKA IT tasks. It can be 
+used to defer processing of expensive tasks from a web application, to
+run a scheduled task across many different hosts, etc.
+
+It's composed of four major parts:
+
+Task[rdoc-ref:LAIKA::GroundControl::Task]::
+  The main unit of work. This is the class that describes the work to be
+  done, and one Task is loaded and executed for each Job by a Worker.
+Job[rdoc-ref:LAIKA::GroundControl::Job]::
+  A request for the execution of a Task, along with any data needed to run
+  it. These are added to a Queue, then fetched and removed by a Worker once
+  the Task has been executed.
+Queue[rdoc-ref:LAIKA::GroundControl::Queue]::
+  An object class that manages queueing logic for Jobs. It handles
+  adding and fetching of jobs from a PostgreSQL database, and provides
+  convenience functions for job creation.
+Worker[rdoc-ref:LAIKA::GroundControl::Worker]::
+  An object class that encapsulates the child-process logic used by the 
+  *worker daemon* (+gcworkerd+).
+
+It also includes several executables under bin/:
+
+gcworkerd::
+  A daemon which manages startup and shutdown of one or more Workers
+  running Jobs from a Queue.
+gcscheduled::
+  A daemon that provides scheduled injection of jobs. (*TODO*)
+groundcontrol::
+  A command shell which can manage, inject, schedule, and monitor job
+  execution across multiple Queues. (*TODO*)
 
 
 == Installation
