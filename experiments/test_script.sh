@@ -12,9 +12,9 @@ Cause you look good.
 This mail was generated from a GroundControl job, sending and
 executing a templated script on a random host.
 
-host:  <?attr task_arguments[:hostname] ?> 
-job:   <?attr job ?> 
-queue: <?attr queue ?> 
+host:  <?attr task.hostname ?> 
+job:   <?attr task.job ?> 
+queue: <?attr task.queue.name ?> 
 
 Have a pleasant day.
 EOF

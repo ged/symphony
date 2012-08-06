@@ -8,3 +8,4 @@ laika-legacy/config/host\.yml$
 ldap-snapshot.*
 pkg/
 ^ChangeLog$
+^doc/

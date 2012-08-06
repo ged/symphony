@@ -2,11 +2,30 @@
 
 require 'laika' unless defined?( LAIKA )
 require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
+require 'laika/groundcontrol/queue'
 require 'laika/model'
 
 
-# A Job is an instruction for running a Task with a particular set of arguments. They
-# are put into a Queue, and run with bin/gcworkerd.
+# A Job is a request for the execution of a Task with a particular set of arguments. They
+# are managed via a Queue, and run with a Worker launched by bin/gcworkerd.
+#
+#   require 'laika'
+#
+#   LAIKA.require_features( :groundcontrol )
+#   LAIKA.load_config( 'config.yml' )
+# 
+#   # You can instantiate a Job directly...
+#   job = LAIKA::GroundControl::Job.create( task_name: 'pinger',
+#                                           queue_name: '_default_',
+#                                           task_arguments: {
+#                                               hostname: 'gw.bennett.laika.com'
+#                                           } )
+#   job.save
+#
+#   # But Queue objects provide a somewhat less-verbose mechanism for doing so:
+#   queue = LAIKA::GroundControl.default_queue
+#   queue.add( 'pinger', hostname: 'gw.bennett.laika.com' )
+#
 class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	extend LAIKA::MethodUtilities
 
@@ -21,17 +40,38 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	set_schema do
 		primary_key :id
 
-		column :queue_name, :text, :null => false, :default => 'default'
-		column :task_name, :text, :null => false
+		column :queue_name, :text, null: false,
+		       default: LAIKA::GroundControl::Queue::DEFAULT_NAME
+		column :task_name, :text, null: false
 		column :task_arguments, :text
 
 		column :created_at, :timestamp
 		column :locked_at, :timestamp
 	end
 
-	# Pre-define some datasets
+
+	#
+	# :section: Dataset Methods
+	# These methods return a Sequel::Dataset for a subset of Jobs. See
+	# the docs for Sequel::Dataset for usage details.
+	#
+
+	##
+	# :singleton-method: unlocked
+	# Dataset method for all unlocked jobs.
 	def_dataset_method( :unlocked ) { filter(locked_at: nil) }
-	def_dataset_method( :for_queue ) {|queue_name| filter(:queue_name => queue_name) }
+
+	##
+	# :singleton-method: for_queue
+	# :call-seq:
+	#   Job.for_queue( queue_name )
+	#
+	# Fetch a dataset for jobs in the queue named 'queuename'
+	def_dataset_method( :for_queue ) {|queue_name| filter(queue_name: queue_name) }
+
+	##
+	# :singleton-method: locked
+	# Dataset method for all locked jobs.
 	def_dataset_method( :locked ) { filter(:locked_at) }
 	singleton_method_alias :in_progress, :locked
 
@@ -42,6 +82,8 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	# Serialize the job's arguments as a ruby object
 	serialize_attributes :marshal, :task_arguments
 
+
+	# :section:
 
 	### Default the queue name if it's not set on instantiation.
 	def initialize( * ) # :notnew:
@@ -82,30 +124,6 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	end
 
 
-	### Ensure required fields are defined.
-	def validate_required_fields
-		self.validates_presence( [:task_name] )
-	end
-
-
-	### Ensure the queue name is a valid SQL identifier
-	def validate_queue_name
-		self.validates_format( /^\w+$/, :queue_name, message: "must be a valid SQL identifier" )
-	end
-
-
-	### Sequel Hook -- send a notification whenever there's a modification
-	### :TODO: This may need to be moved to #after_create instead if notifications
-	###        sent after a job is fetched and locked is problematic.
-	def after_save
-		self.log.debug "Sending a notification for the %s queue" % [ self.queue_name ]
-
-		# :TODO: Sequel doesn't quote this, so the queue_name can't be a keyword like 'default'.
-		#        Send a patch to Jeremy to fix this.
-		self.db.notify( self.queue_name )
-	end
-
-
 	### Fetch the LAIKA::GroundControl::Task subclass associated with this job.
 	def task_class
 		return LAIKA::GroundControl::Task.get_subclass( self.task_name )
@@ -123,6 +141,33 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 		]
 	end
 
+
+	#########
+	protected
+	#########
+
+	### Ensure required fields are defined.
+	def validate_required_fields
+		self.validates_presence( [:task_name] )
+	end
+
+
+	### Ensure the queue name is a valid SQL identifier
+	def validate_queue_name
+		self.validates_format( /^\w+$/, :queue_name, message: "must be a valid SQL identifier" )
+	end
+
+
+	### Sequel Hook -- send a notification whenever there's a modification
+	### :TODO: This may need to be moved to #after_create instead if notifications
+	### sent after a job is fetched and locked prove to be problematic.
+	def after_save
+		self.log.debug "Sending a notification for the %s queue" % [ self.queue_name ]
+
+		# :TODO: Sequel doesn't quote this, so the queue_name can't be a keyword like 'default'.
+		#        Send a patch to Jeremy to fix this.
+		self.db.notify( self.queue_name )
+	end
 
 end # class LAIKA::GroundControl::Job
 

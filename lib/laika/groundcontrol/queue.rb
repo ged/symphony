@@ -4,7 +4,42 @@ require 'laika' unless defined?( LAIKA )
 require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 
 
-# Queueing logic for GroundControl jobs.
+# An object class that encapsulates queueing logic for GroundControl jobs.
+#
+#   require 'laika'
+#
+#   LAIKA.require_features( :groundcontrol )
+#   LAIKA.load_config( 'config.yml' )
+# 
+#   # Get the default queue
+#   queue = LAIKA::GroundControl.default_queue
+#
+#   # Or a named queue
+#   queue = LAIKA::GroundControl::Queue.new( 'outgoing_mail' )
+#
+#   # Add a job
+#   queue.add( 'mail',
+#              recipients: ['it-alerts@lists.laika.com'],
+#              subject: 'Exception while rendering',
+#              template: 'exception.tmpl',
+#              attributes: { exception: e } )
+#
+#   # Get a read-only array of current jobs
+#   jobs = queue.jobs
+#
+#   # Fetch the next available job in the queue
+#   job = queue.next
+#
+#   # Add a clone of a fetched job (re-queue)
+#   queue.re_add( job )
+#
+#   # Wait for queue notifications
+#   queue.wait_for_notification( poll: true, timeout: 5 ) do |*|
+#       count = queue.dataset.filter( locked_at: nil ).count
+#       $stderr.puts "%d tasks remain..." % [ count ]
+#       throw :stop if count < 1
+#   end
+#
 class LAIKA::GroundControl::Queue
 	extend Loggability
 
@@ -21,8 +56,6 @@ class LAIKA::GroundControl::Queue
 	def self::default
 		return new( DEFAULT_NAME )
 	end
-
-
 
 
 	### Create a new LAIKA::GroundControl::Queue with the given +name+.
@@ -102,7 +135,8 @@ class LAIKA::GroundControl::Queue
 	### Wait for a notification from PostgreSQL that the queue has been updated. If +poll+ is true,
 	### notifications will be waited for in a loop, and the block called for each one received. If
 	### +timeout+ is specified, this method will return +timeout+ seconds after it was called if no
-	### notifications arrive.
+	### notifications arrive. If +poll+ is true, you can <tt>throw :stop</tt> to break out of the
+	### look cleanly.
 	def wait_for_notification( poll=false, timeout=nil, &block )
 		db = LAIKA::GroundControl::Job.db
 
@@ -114,8 +148,6 @@ class LAIKA::GroundControl::Queue
 		block ||= Proc.new {|*| self.log.info "Got a notification!" }
 
 		db.listen( self.name, options, &block )
-
-		# :TODO: Does this need to drain other notifications?
 	end
 
 
@@ -126,7 +158,7 @@ class LAIKA::GroundControl::Queue
 	### Callback for notification wait state. Called after the LISTEN, but before the
 	### thread blocks waiting for notification.
 	def start_waiting( conn )
-		self.log.info "Waiting for the next job on %p." % [ conn ]
+		self.log.debug "Waiting for the next job on %p." % [ conn ]
 	end
 
 

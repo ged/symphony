@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'loggability'
 require 'pluginfactory'
 
 require 'laika' unless defined?( LAIKA )
@@ -8,10 +9,53 @@ require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 
 
 # Task logic for GroundControl. A task is the subclassable unit of work that the
-# gcworkerd actually instantiates and runs when a job is fetched.
+# gcworkerd actually instantiates and runs when a job is fetched. A Job is a request
+# for the execution of a Task with a specific configuration. 
+#
+# To create a new Task, subclass LAIKA::GroundControl::Task, and provide an implementation
+# of the #run method. The #run method should contain all of the actual work of the task.
+# Additional callbacks are available for {setting up the task}[rdoc-ref:on_startup],
+# {handling exceptions}[rdoc-ref:on_error], {handling successful completion}[rdoc-ref:on_completion],
+# and {handling task shutdown}[rdoc-ref:on_shutdown].
+#
+# You can also override the #description method to provide a description of the task
+# for human consumption, such as in a list of tasks in the shell or a web interface.
+#
+#   require 'net/http'
+#   require 'timeout'
+#   require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
+#
+#   class LAIKA::GroundControl::Task::HttpCheck < LAIKA::GroundControl::Task
+#       
+#       def initialize( queue, job )
+#           super
+#           opts = self.job.task_arguments.shift || {}
+#           @host = opts[:host]
+#       end
+#
+#       attr_reader :host
+#
+#       def run
+#           Net::HTTP.get( self.host, '/' )
+#       end
+#
+#       def on_error( exception )
+#           msg = "WWW service on %s is down: %s" % [ self.host, exception.message ]
+#           self.queue.add( :notification,
+#                           recipients: 'it-alerts@lists.laika.com',
+#                           message: msg )
+#       end
+#
+#   end
+#
 class LAIKA::GroundControl::Task
-	include PluginFactory,
-	        LAIKA::AbstractClass
+	extend Loggability,
+	       PluginFactory
+	include LAIKA::AbstractClass
+
+
+	# Loggability API -- log to LAIKA's logger
+	log_to :laika
 
 
 	### PluginFactory API -- set the directory/directories that will be search when trying to
@@ -35,12 +79,40 @@ class LAIKA::GroundControl::Task
 	attr_reader :job
 
 
+	#
+	# :section:
+	#
 
-	### Task API -- the main logic of the Task goes here.
+	### Stringify the task as a description.
+	def to_s
+		class_desc = self.class.name.scan( /((?:\b|[A-Z])[^A-Z]+)/ ).
+			flatten.map{|c| c.sub( '::', '' )}.join( ' ' )
+		detail_desc = self.description
+		return "%s%s" % [ class_desc, detail_desc ? ": #{detail_desc}" : '' ]
+	end
+
+
+
+	#
+	# :section: Task API
+	# These are the methods you will likely be interested in overriding when writing your
+	# own task type. You're only _required_ to implement #run.
+	#
+
+	### Task API -- callback called when the task first starts up, before it is run. This should
+	### only be used to provide any additional preparation for the gcworkerd child that the
+	### Worker object doesn't handle itself, such as file descriptor cleanup, switching users,
+	### setting resource restrictions, etc.
+	def on_startup
+	end
+
+
+	##
+	# Task API -- the main logic of the Task goes here.
 	pure_virtual :run
 
 
-	### Task API -- callback called if the task aborts on an exception. If the task is
+	### Task API -- callback called if the task aborts on a StandardError. If the task is
 	### aborted with a LAIKA::GroundControl::AbortTask, the task's job is automatically
 	### re-added to the queue it came from. If you don't want this to happen, just don't
 	### super().
@@ -49,13 +121,9 @@ class LAIKA::GroundControl::Task
 			self.log.warn "Task aborted by the runner; re-queueing job %s" % [ self.job ]
 			self.queue.re_add( self.job )
 		else
-			self.log.error "%p while running: %s: %s" % [ exception.class, self.job, exception.message ]
+			self.log.error "%p while running: %s: %s" %
+				[ exception.class, self.job, exception.message ]
 		end
-	end
-
-
-	### Task API -- callback called when the task first starts up, before it is run.
-	def on_startup
 	end
 
 
@@ -71,20 +139,15 @@ class LAIKA::GroundControl::Task
 	end
 
 
+	#########
+	protected
+	#########
+
 	### Provide details for the human-readable description. By default, just returns
 	### +nil+, which will mean the string will only contain the description derived from
 	### the task class.
 	def description
 		return nil
-	end
-
-
-	### Stringify the task as a description.
-	def to_s
-		class_desc = self.class.name.scan( /((?:\b|[A-Z])[^A-Z]+)/ ).
-			flatten.map{|c| c.sub( '::', '' )}.join( ' ' )
-		detail_desc = self.description
-		return "%s%s" % [ class_desc, detail_desc ? ": #{detail_desc}" : '' ]
 	end
 
 end # class LAIKA::GroundControl::Queue

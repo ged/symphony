@@ -8,10 +8,6 @@ require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 ### A proof-of-concept task to determine the network availability of a host.
 class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 
-	extend Loggability
-	log_to :laika
-
-
 	# The default port
 	DEFAULT_PORT = 'echo'
 
@@ -23,23 +19,33 @@ class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 	def initialize( queue, job )
 		super
 
-		args = Array( self.job.task_arguments )
+		opts = self.job.task_arguments.shift || {}
 
-		@hostname = args.shift or
+		@hostname = opts[:hostname] or
 			raise ArgumentError, "no hostname specified"
-		@port     = Socket.getservbyname( args.shift || DEFAULT_PORT )
-		@timeout  = Integer( args.shift || DEFAULT_TIMEOUT )
+		@port     = Socket.getservbyname( opts[:port] || DEFAULT_PORT )
+		@timeout  = Integer( opts[:timeout] || DEFAULT_TIMEOUT )
 
-		@unavailable = nil
+		@problem = nil
 	end
 
 
-	# The hostname and port to ping, and the number of seconds to wait before timing out
-	attr_reader :hostname, :port, :timeout
+	######
+	public
+	######
 
-	# The current state of the host on network -- nil (if available) or
-	# the Exception object responsible for the unavailability
-	attr_reader :unavailable
+	# The hostname to ping
+	attr_reader :hostname
+
+	# The (TCP) port to ping
+	attr_reader :port
+
+	# The number of seconds to wait before timing out when pinging
+	attr_reader :timeout
+
+	# If there is a problem pinging the remote host, this is set to the exception
+	# raised when doing so.
+	attr_reader :problem
 
 
 	#
@@ -53,11 +59,11 @@ class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 			tcp = TCPSocket.new( self.hostname, self.port )
 		end
 
-	rescue Errno::ECONNREFUSED
-		# fallthrough
+	rescue Timeout::Error
+		@problem = "timed out"
 
-	rescue => err
-		@unavailable = err
+	rescue Errno::ECONNREFUSED => err
+		@problem = "no ssh service"
 
 	ensure
 		tcp.close if tcp
@@ -66,14 +72,27 @@ class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 
 	### Report on what we found
 	def on_completion
-		if self.unavailable.nil?
-			self.log.warn "Host '%s' is available!" % [ self.hostname ]
-		else
+		if self.problem
 			self.log.warn "Host '%s' is NOT available: %s" % [
 				self.hostname,
-				self.unavailable.message
+				self.problem
 			]
+
+		else
+			self.log.warn "Host '%s' is available!" % [ self.hostname ]
 		end
+	end
+
+
+
+	#########
+	protected
+	#########
+
+	### Return a human-readable description of the task.
+	def description
+		svcname = Socket.getservbyport( self.port )
+		return "Pinging the %s port of %s" % [ svcname, self.hostname ]
 	end
 
 end # class LAIKA::GroundControl::Task::Pinger
