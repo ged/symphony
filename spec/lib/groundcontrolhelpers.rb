@@ -16,6 +16,18 @@ BEGIN {
 	$LOAD_PATH.unshift( baselibdir.to_s ) unless $LOAD_PATH.include?( baselibdir.to_s )
 }
 
+# SimpleCov test coverage reporting; enable this using the :coverage rake task
+if ENV['COVERAGE']
+	require 'simplecov'
+	SimpleCov.start do
+		add_filter 'spec'
+		add_group "Needing tests" do |file|
+			file.covered_percent < 90
+		end
+	end
+end
+
+
 require 'rspec'
 
 require 'laika'

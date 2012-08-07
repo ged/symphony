@@ -49,6 +49,18 @@ describe LAIKA::GroundControl::Task do
 	end
 
 
+	it "provides a default error handler that re-queues the job if it aborts" do
+		subclass = Class.new( described_class )
+		queue = mock( "gc queue" )
+		job = double( "gc job" )
+		
+		queue.should_receive( :re_add ).with( job )
+
+		exception = LAIKA::GroundControl::AbortTask.new( "Testing." )
+		subclass.new( queue, job ).on_error( exception )
+	end
+
+
 	context "a subclass" do
 
 		before( :each ) do

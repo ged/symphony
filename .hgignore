@@ -9,3 +9,5 @@ ldap-snapshot.*
 pkg/
 ^ChangeLog$
 ^doc/
+^coverage/
+
