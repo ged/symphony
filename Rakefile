@@ -44,3 +44,9 @@ task 'hg:precheckin' => [ :check_history, :check_manifest, :spec ]
 task :prerelease => 'ChangeLog'
 CLOBBER.include( 'ChangeLog' )
 
+desc "Build a coverage report"
+task :coverage do
+	ENV["COVERAGE"] = 'yes'
+	Rake::Task[:spec].invoke
+end
+

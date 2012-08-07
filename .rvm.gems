@@ -12,3 +12,5 @@ clockwork -v0.4.1
 laika-base -v3.1.0 --source http://rubygems.laika.com
 laika-db -v0.7.0  --source http://rubygems.laika.com
 
+simplecov -v0.6.4
+

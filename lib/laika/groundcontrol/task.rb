@@ -150,5 +150,17 @@ class LAIKA::GroundControl::Task
 		return nil
 	end
 
+
+	#######
+	private
+	#######
+
+	### Abort the task and requeue it, using the the specified message in logs
+	### and any reporting mechanism.
+	def abort( message )
+		raise LAIKA::GroundControl::AbortTask, message
+	end
+
+
 end # class LAIKA::GroundControl::Queue
 
