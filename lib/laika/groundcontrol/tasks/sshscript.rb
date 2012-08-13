@@ -58,14 +58,14 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 		self.log.debug "Task options: %p" % [ opts ]
 
 		# required arguments
-		@hostname = opts[:hostname] or raise ArgumentError, "no hostname specified"
-		@template = opts[:template] or raise ArgumentError, "no script template specified"
-		@key      = opts[:key]      or raise ArgumentError, "no private key specified"
+		@hostname   = opts[:hostname] or raise ArgumentError, "no hostname specified"
+		@template   = opts[:template] or raise ArgumentError, "no script template specified"
+		@key        = opts[:key]      or raise ArgumentError, "no private key specified"
 
 		# optional arguments
-		@port            = opts[:port] || 22
-		@user            = opts[:user] || 'root'
-		@attributes      = opts[:attributes] || {}
+		@port       = opts[:port] || 22
+		@user       = opts[:user] || 'root'
+		@attributes = opts[:attributes] || {}
 	end
 
 
