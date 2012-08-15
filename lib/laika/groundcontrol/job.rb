@@ -13,7 +13,7 @@ require 'laika/model'
 #
 #   LAIKA.require_features( :groundcontrol )
 #   LAIKA.load_config( 'config.yml' )
-# 
+#
 #   # You can instantiate a Job directly...
 #   job = LAIKA::GroundControl::Job.create( task_name: 'pinger',
 #                                           queue_name: '_default_',
