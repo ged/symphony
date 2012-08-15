@@ -10,7 +10,7 @@ require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 
 # Task logic for GroundControl. A task is the subclassable unit of work that the
 # gcworkerd actually instantiates and runs when a job is fetched. A Job is a request
-# for the execution of a Task with a specific configuration. 
+# for the execution of a Task with a specific configuration.
 #
 # To create a new Task, subclass LAIKA::GroundControl::Task, and provide an implementation
 # of the #run method. The #run method should contain all of the actual work of the task.
@@ -26,7 +26,7 @@ require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 #   require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 #
 #   class LAIKA::GroundControl::Task::HttpCheck < LAIKA::GroundControl::Task
-#       
+#
 #       def initialize( queue, job )
 #           super
 #           opts = self.job.task_arguments.shift || {}

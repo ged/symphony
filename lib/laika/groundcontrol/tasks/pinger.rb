@@ -5,11 +5,11 @@ require 'timeout'
 require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 
 
-### A proof-of-concept task to determine the network availability of a host.
+### A proof-of-concept task to determine sh availability of a host.
 class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 
 	# The default port
-	DEFAULT_PORT = 'echo'
+	DEFAULT_PORT = 'ssh'
 
 	# The number of seconds to wait for a connection attempt
 	DEFAULT_TIMEOUT = 5.seconds

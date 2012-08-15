@@ -6,45 +6,26 @@ require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 ### A base SSH class for connecting to remote hosts, running commands,
 ### and collecting output.
 class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
-	extend Configurability,
-	       LAIKA::MethodUtilities
-
-	# Configurability API -- configure via the 'task_ssh' section of the config
-	config_key :task_ssh
-
-
-	# The default path to the ssh binary.
-	@path = '/usr/bin/ssh'
-
-	# Default ssh behavior arguments.
-	@ssh_args = [
-		'-e', 'none',
-		'-T',
-		'-x',
-		'-o', 'CheckHostIP=no',
-		'-o', 'KbdInteractiveAuthentication=no',
-		'-o', 'StrictHostKeyChecking=no'
-	]
-
-
-	# The path the the ssh binary
-	singleton_attr_accessor :path
-
-	# The arguments to the ssh binary
-	singleton_attr_accessor :ssh_args
-
-
-	### Configurability API
-	def self::configure( config )
-		return unless config
-		self.path = config[:path] if config[:path]
-	end
-
+	extend LAIKA::MethodUtilities
 
 	### Create a new SSH task for the given +job+ and +queue+.
 	def initialize( queue, job )
 		super
-		opts = self.job.task_arguments
+		opts = self.job.task_arguments.first || {}
+
+		# The default path to the ssh binary.
+		@path = opts[:ssh_path] || '/usr/bin/ssh'
+
+		# Default ssh behavior arguments.
+		@ssh_args = opts[:ssh_args] || [
+			'-e', 'none',
+			'-T',
+			'-x',
+			'-q',
+			'-o', 'CheckHostIP=no',
+			'-o', 'BatchMode=yes',
+			'-o', 'StrictHostKeyChecking=no'
+		]
 
 		# required arguments
 		@hostname = opts[:hostname] or raise ArgumentError, "no hostname specified"
@@ -59,6 +40,11 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 		@return_value = nil
 	end
 
+	# The default path to the ssh binary.
+	attr_reader :path
+
+	# Default ssh behavior arguments.
+	attr_reader :ssh_args
 
 	# The hostname to connect to.
 	attr_reader :hostname
@@ -105,8 +91,8 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 		raise LocalJumpError, "no block given" unless block_given?
 
 		cmd = []
-		cmd << self.class.path
-		cmd << self.class.ssh_args
+		cmd << self.path
+		cmd << self.ssh_args
 		cmd << '-p' << self.port.to_s
 		cmd << '-i' << self.key if self.key
 		cmd << '-l' << self.user
