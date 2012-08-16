@@ -52,8 +52,8 @@ describe LAIKA::GroundControl::Task do
 	it "provides a default error handler that re-queues the job if it aborts" do
 		subclass = Class.new( described_class )
 		queue = mock( "gc queue" )
-		job = double( "gc job" )
-		
+		job = double( "gc job", task_options: {} )
+
 		queue.should_receive( :re_add ).with( job )
 
 		exception = LAIKA::GroundControl::AbortTask.new( "Testing." )
@@ -67,17 +67,19 @@ describe LAIKA::GroundControl::Task do
 			@subclass = Class.new( described_class ) do
 				def self::name; "DoSomeStuff"; end
 			end
+			@queue = double( "gc queue" )
+			@job = double( "gc job", task_options: {} )
 		end
 
 		it "needs to override run" do
 			expect {
-				@subclass.new( :queue, :job ).run
+				@subclass.new( @queue, @job ).run
 			}.to raise_error( NotImplementedError, /#run/i )
 		end
 
 
 		it "stringifies with a human-readable description" do
-			@subclass.new( :queue, :job ).to_s.should == "Do Some Stuff"
+			@subclass.new( @queue, @job ).to_s.should == "Do Some Stuff"
 		end
 
 
@@ -86,7 +88,7 @@ describe LAIKA::GroundControl::Task do
 				def description; "ping host 'breznev'"; end
 			end
 
-			@subclass.new( :queue, :job ).to_s.should == "Do Some Stuff: ping host 'breznev'"
+			@subclass.new( @queue, @job ).to_s.should == "Do Some Stuff: ping host 'breznev'"
 		end
 
 	end

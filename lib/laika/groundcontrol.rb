@@ -13,7 +13,7 @@ module LAIKA::GroundControl
 	REVISION = %q$Revision$
 
 	# Load dependent features
-	LAIKA.require_features( :db )
+	LAIKA.require_features( :db, :ldap )
 
 	LAIKA::DB.register_model 'laika/groundcontrol/job'
 	require 'laika/groundcontrol/queue'

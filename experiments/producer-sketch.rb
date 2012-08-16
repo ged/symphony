@@ -36,7 +36,7 @@ if ARGV.empty?
 
 else
 
-	# queue.add( 'pinger', ARGV.shift )
+	# queue.add( 'pinger', hostname: ARGV.shift )
 
 	# queue.add( 'ssh', 
 	#            hostname: ARGV.shift,
@@ -45,7 +45,7 @@ else
 	recipient = "%s@laika.com" % [ Etc.getlogin ]
 	queue.add( 'sshscript',
 	           hostname:   ARGV.shift,
-	           template:   ARGV.shift,
+	           template:   ARGV.shift || 'test_script.sh',
 	           key:        File.expand_path('~/.ssh/id_rsa'),
 	           attributes: { recipient: recipient } )
 end

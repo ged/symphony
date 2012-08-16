@@ -17,7 +17,7 @@ require 'laika/model'
 #   # You can instantiate a Job directly...
 #   job = LAIKA::GroundControl::Job.create( task_name: 'pinger',
 #                                           queue_name: '_default_',
-#                                           task_arguments: {
+#                                           task_options: {
 #                                               hostname: 'gw.bennett.laika.com'
 #                                           } )
 #   job.save
@@ -43,7 +43,7 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 		column :queue_name, :text, null: false,
 		       default: LAIKA::GroundControl::Queue::DEFAULT_NAME
 		column :task_name, :text, null: false
-		column :task_arguments, :text
+		column :task_options, :text
 
 		column :created_at, :timestamp
 		column :locked_at, :timestamp
@@ -79,8 +79,8 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	# Dont allow writes to the 'locked_at' columns via mass updates
 	set_restricted_columns :locked_at
 
-	# Serialize the job's arguments as a ruby object
-	serialize_attributes :marshal, :task_arguments
+	# Serialize the job's options hash
+	serialize_attributes :marshal, :task_options
 
 
 	# :section:

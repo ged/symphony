@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'timeout'
 require 'loggability'
 require 'pluginfactory'
 
@@ -29,7 +30,7 @@ require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 #
 #       def initialize( queue, job )
 #           super
-#           opts = self.job.task_arguments.shift || {}
+#           opts = self.job.task_options.shift || {}
 #           @host = opts[:host]
 #       end
 #
@@ -58,6 +59,10 @@ class LAIKA::GroundControl::Task
 	log_to :laika
 
 
+	# The number of seconds to wait for a connection attempt
+	DEFAULT_TIMEOUT = 5.seconds
+
+
 	### PluginFactory API -- set the directory/directories that will be search when trying to
 	### load tasks by name.
 	def self::derivative_dirs
@@ -67,8 +72,10 @@ class LAIKA::GroundControl::Task
 
 	### Create a new instance of the task for the given +job+ from the specified +queue+.
 	def initialize( queue, job )
-        @queue  = queue
-        @job    = job
+		@queue   = queue
+		@job     = job
+		@options = job.task_options || {}
+		@timeout = self.options[:timeout] || DEFAULT_TIMEOUT
 	end
 
 
@@ -77,6 +84,12 @@ class LAIKA::GroundControl::Task
 
 	# The LAIKA::GroundControl::Job the task belongs to
 	attr_reader :job
+
+	# The task options given to the job
+	attr_reader :options
+
+	# The number of seconds to wait before timing out when pinging
+	attr_reader :timeout
 
 
 	#
@@ -148,6 +161,50 @@ class LAIKA::GroundControl::Task
 	### the task class.
 	def description
 		return nil
+	end
+
+
+	### Wrap a block in a timeout check, failing it if it takes longer than the
+	### number of seconds in the task's timeout.
+	def with_timeout
+		Timeout.timeout( self.timeout ) do
+			yield
+		end
+	rescue Timeout::Error
+		self.log.error "Timeout waiting for response from #{hostname}"
+		return false
+	end
+
+
+	### Check service availability of a +hostname+ at +port+ before trying to have
+	### a conversation with it.
+	def ping( hostname, port )
+		tcp = nil
+
+		self.log.debug "Pinging #{hostname}:#{port}..."
+		val = self.with_timeout do
+			tcp = TCPSocket.new( hostname, port )
+		end
+		self.log.debug "  success!"
+
+		return val
+
+	rescue Errno::ECONNREFUSED => err
+		self.log.error "Connection refused on port #{port} by #{hostname}"
+		return false
+
+	ensure
+		# Prevent FD leak
+		tcp.close if tcp
+	end
+
+
+	### Expand the given +hostname+ into an Array of one or more FQDNs, either preserving it
+	### as-is if it was already an FQDN, or expanding it into every possible matching FQDN
+	### from LDAP if not.
+	def expand_hostname( hostname )
+		hosts = LAIKA::Host.find( hostname )
+		return Array( hosts ).map( &:fqdn )
 	end
 
 

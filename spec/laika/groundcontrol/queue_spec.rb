@@ -126,7 +126,7 @@ describe LAIKA::GroundControl::Queue do
 		newjob.id.should_not == job.id
 		newjob.locked_at.should be_nil()
 		newjob.task_name.should == job.task_name
-		newjob.task_arguments.should == job.task_arguments
+		newjob.task_options.should == job.task_options
 	end
 
 end

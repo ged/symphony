@@ -54,18 +54,16 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	### Create a new SSH task for the given +job+ and +queue+.
 	def initialize( queue, job )
 		super
-		opts = self.job.task_arguments.shift || {}
-		self.log.debug "Task options: %p" % [ opts ]
 
 		# required arguments
-		@hostname   = opts[:hostname] or raise ArgumentError, "no hostname specified"
-		@template   = opts[:template] or raise ArgumentError, "no script template specified"
-		@key        = opts[:key]      or raise ArgumentError, "no private key specified"
+		@hostname   = self.options[:hostname] or raise ArgumentError, "no hostname specified"
+		@template   = self.options[:template] or raise ArgumentError, "no script template specified"
+		@key        = self.options[:key]      or raise ArgumentError, "no private key specified"
 
 		# optional arguments
-		@port       = opts[:port] || 22
-		@user       = opts[:user] || 'root'
-		@attributes = opts[:attributes] || {}
+		@port       = self.options[:port] || 22
+		@user       = self.options[:user] || 'root'
+		@attributes = self.options[:attributes] || {}
 	end
 
 
@@ -95,14 +93,25 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	### Load the script as an Inversion template, sending and executing
 	### it on the remote host.
 	def run
+		fqdn = self.expand_hostname( self.hostname ).
+			find {|hostname| self.ping(hostname, self.port) }
+
+		unless fqdn
+			self.log.debug "Unable to find an on-network host for %s:%d" %
+				[ self.hostname, self.port ]
+			return
+		end
+
 		remote_filename = self.make_remote_filename
 		source = self.generate_script
 
 		# Establish the SSH connection
 		ssh_options = DEFAULT_SSH_OPTIONS.merge( :port => self.port, :keys => [self.key] )
-		Net::SSH.start( self.hostname, self.user, ssh_options ) do |conn|
-			self.upload_script( conn, source, remote_filename )
-			self.run_script( conn, remote_filename )
+		self.with_timeout do
+			Net::SSH.start( fqdn, self.user, ssh_options ) do |conn|
+				self.upload_script( conn, source, remote_filename )
+				self.run_script( conn, remote_filename )
+			end
 		end
 	end
 
