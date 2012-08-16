@@ -30,9 +30,6 @@ describe LAIKA::GroundControl::Queue do
 	before( :all ) do
 		setup_logging( :fatal )
 		setup_test_database()
-		LAIKA::GroundControl::Job.create_schema( :groundcontrol ) unless
-			LAIKA::GroundControl::Job.schema_exists?( :groundcontrol )
-		LAIKA::GroundControl::Job.create_table unless LAIKA::GroundControl::Job.table_exists?
 	end
 
 	before( :each ) do
