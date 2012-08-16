@@ -17,6 +17,10 @@ class LAIKA::GroundControl::Worker
 	log_to :laika
 
 
+	# Signal to reset to defaults for the child
+	SIGNALS = [ :QUIT, :INT, :TERM, :HUP ]
+
+
 	### Fork and start a worker listening for work on the specified +queue+ (a
 	### LAIKA::GroundControl::Queue). Returns the +pid+ of the worker process.
 	def self::start( queue )
@@ -26,18 +30,8 @@ class LAIKA::GroundControl::Worker
 
 		# Child
 		else
-			# Reconnect so we aren't using the parent's connection
-			LAIKA::DB.connection.synchronize do |conn|
-				self.log.debug "Resetting connection %p (FD: %d)" % [ conn, conn.socket ]
-				conn.reset
-				self.log.debug "  reset. (FD: %d)" % [ conn.socket ]
-			end
-
-			# Use default signal handlers
-			# :TODO: Add graceful signal handling for the children, too.
-			LAIKA::GroundControl::WorkerDaemon::QUEUE_SIGS.each do |sig|
-				Signal.trap( sig, :DEFAULT )
-			end
+			self.reset_file_descriptors
+			self.set_signal_handlers
 
 			# Run the worker, ensuring the child doesn't return to parent code 
 			# when finished.
@@ -47,6 +41,30 @@ class LAIKA::GroundControl::Worker
 				exit!
 			end
 		end
+	end
+
+
+	### Reset any file descriptors inherited from the parent.
+	def self::reset_file_descriptors
+
+		# Reconnect so we aren't using the parent's connection
+		LAIKA::DB.connection.synchronize do |conn|
+			self.log.debug "Resetting connection %p (FD: %d)" % [ conn, conn.socket ]
+			conn.reset
+			self.log.debug "  reset. (FD: %d)" % [ conn.socket ]
+		end
+
+	end
+
+
+	### Set signal handlers for the child.
+	def self::set_signal_handlers
+
+		# Use default signal handlers
+		SIGNALS.each do |sig|
+			Signal.trap( sig, :DEFAULT )
+		end
+
 	end
 
 
@@ -100,6 +118,8 @@ class LAIKA::GroundControl::Worker
 
 		self.set_app_name
 		self.run_task( @task )
+	rescue Interrupt
+		self.log.info "Interrupted: shutting down."
 	rescue Exception => err
 		self.log.fatal "%p in worker %d: %s" % [ err.class, Process.pid, err.message ]
 		self.log.debug { '  ' + err.backtrace.join("  \n") }
@@ -130,6 +150,7 @@ class LAIKA::GroundControl::Worker
 		task.on_shutdown
 		elapsed = Time.now - starttime
 	end
+
 
 end # class LAIKA::GroundControl::Queue
 
