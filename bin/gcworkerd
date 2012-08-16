@@ -134,9 +134,6 @@ class LAIKA::GroundControl::WorkerDaemon
 
 	### Set up the daemon and start running.
 	def run
-		Loggability.level = :debug
-		Loggability.format_with( :color ) if $stdout.tty?
-
 		self.log.info "Starting worker supervisor"
 
 		# Become session leader if we can

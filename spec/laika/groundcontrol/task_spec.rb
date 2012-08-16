@@ -29,8 +29,6 @@ describe LAIKA::GroundControl::Task do
 	before( :all ) do
 		setup_logging( :fatal )
 		setup_test_database()
-		LAIKA::GroundControl::Job.create_schema!( :groundcontrol ) # Workaround for Sequel bug
-		LAIKA::GroundControl::Job.create_table!
 	end
 
 	after( :each ) do
@@ -38,8 +36,6 @@ describe LAIKA::GroundControl::Task do
 	end
 
 	after( :all ) do
-		LAIKA::GroundControl::Job.drop_table
-		LAIKA::GroundControl::Job.drop_schema( :groundcontrol )
 		cleanup_test_database()
 	end
 
