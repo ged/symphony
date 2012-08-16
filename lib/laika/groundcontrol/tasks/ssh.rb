@@ -11,13 +11,12 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 	### Create a new SSH task for the given +job+ and +queue+.
 	def initialize( queue, job )
 		super
-		opts = self.job.task_arguments.first || {}
 
 		# The default path to the ssh binary.
-		@path = opts[:ssh_path] || '/usr/bin/ssh'
+		@path = self.options[:ssh_path] || '/usr/bin/ssh'
 
 		# Default ssh behavior arguments.
-		@ssh_args = opts[:ssh_args] || [
+		@ssh_args = self.options[:ssh_args] || [
 			'-e', 'none',
 			'-T',
 			'-x',
@@ -28,13 +27,13 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 		]
 
 		# required arguments
-		@hostname = opts[:hostname] or raise ArgumentError, "no hostname specified"
-		@command  = opts[:command]  or raise ArgumentError, "no command specified"
+		@hostname = self.options[:hostname] or raise ArgumentError, "no hostname specified"
+		@command  = self.options[:command]  or raise ArgumentError, "no command specified"
 
 		# optional arguments
-		@port = opts[:port] || 22
-		@user = opts[:user] || 'root'
-		@key  = opts[:key]
+		@port = self.options[:port] || 22
+		@user = self.options[:user] || 'root'
+		@key  = self.options[:key]
 
 		@output = nil
 		@return_value = nil
@@ -77,7 +76,9 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 
 	### Emit the output from the remote ssh call
 	def on_completion
-		self.log.info "Remote exited with %d, output: %s" % [ @return_value.exitstatus, @output ]
+		if @return_value
+			self.log.info "Remote exited with %d, output: %s" % [ @return_value.exitstatus, @output ]
+		end
 	end
 
 
@@ -90,14 +91,17 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 	def open_connection
 		raise LocalJumpError, "no block given" unless block_given?
 
+		fqdn = self.expand_hostname( self.hostname ).
+			find {|hostname| self.ping(hostname, self.port) } or
+			raise "Unable to find an on-network host for %s:%d" % [ self.hostname, self.port ]
+
 		cmd = []
 		cmd << self.path
-		cmd << self.ssh_args
+		cmd += self.ssh_args
 		cmd << '-p' << self.port.to_s
 		cmd << '-i' << self.key if self.key
 		cmd << '-l' << self.user
-		cmd << self.hostname
-
+		cmd << hostname
 		cmd.flatten!
 		self.log.debug "Running SSH command with: %p" % [ cmd ]
 
@@ -115,6 +119,7 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 		pid, status = Process.waitpid2( pid )
 		return status
 	end
+
 
 end # class LAIKA::GroundControl::Task::SSH
 

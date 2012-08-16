@@ -11,22 +11,14 @@ class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 	# The default port
 	DEFAULT_PORT = 'ssh'
 
-	# The number of seconds to wait for a connection attempt
-	DEFAULT_TIMEOUT = 5.seconds
-
 
 	### Create a new Pinger task for the given +job+ and +queue+.
 	def initialize( queue, job )
 		super
 
-		opts = self.job.task_arguments.shift || {}
-
-		@hostname = opts[:hostname] or
+		@hostname = self.options[:hostname] or
 			raise ArgumentError, "no hostname specified"
-		@port     = Socket.getservbyname( opts[:port] || DEFAULT_PORT )
-		@timeout  = Integer( opts[:timeout] || DEFAULT_TIMEOUT )
-
-		@problem = nil
+		@port     = Socket.getservbyname( self.options[:port] || DEFAULT_PORT )
 	end
 
 
@@ -40,9 +32,6 @@ class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 	# The (TCP) port to ping
 	attr_reader :port
 
-	# The number of seconds to wait before timing out when pinging
-	attr_reader :timeout
-
 	# If there is a problem pinging the remote host, this is set to the exception
 	# raised when doing so.
 	attr_reader :problem
@@ -54,35 +43,14 @@ class LAIKA::GroundControl::Task::Pinger < LAIKA::GroundControl::Task
 
 	### Do the ping.
 	def run
-		tcp = nil
-		Timeout.timeout( self.timeout ) do
-			tcp = TCPSocket.new( self.hostname, self.port )
-		end
-
-	rescue Timeout::Error
-		@problem = "timed out"
-
-	rescue Errno::ECONNREFUSED => err
-		@problem = "no ssh service"
-
-	ensure
-		tcp.close if tcp
-	end
-
-
-	### Report on what we found
-	def on_completion
-		if self.problem
-			self.log.warn "Host '%s' is NOT available: %s" % [
-				self.hostname,
-				self.problem
-			]
-
-		else
-			self.log.warn "Host '%s' is available!" % [ self.hostname ]
+		self.expand_hostname( self.hostname ).each do |host|
+			if self.ping( host, self.port )
+				puts "#{host}: OK"
+			else
+				puts "#{host}: NOT OK"
+			end
 		end
 	end
-
 
 
 	#########

@@ -81,8 +81,8 @@ class LAIKA::GroundControl::Queue
 	### Add the specified +job+ to the queue. The +job+ can be either a
 	### LAIKA::GroundControl::Job, or a string that can be used to instantate
 	### one. Returns the LAIKA::GroundControl::Job that was added.
-	def add( job, *arguments )
-		job = LAIKA::GroundControl::Job.new( task_name: job, task_arguments: arguments ) unless
+	def add( job, options={} )
+		job = LAIKA::GroundControl::Job.new( task_name: job, task_options: options ) unless
 			job.respond_to?( :queue_name= )
 		job.queue_name = self.name
 		job.save
@@ -96,7 +96,7 @@ class LAIKA::GroundControl::Queue
 	def re_add( job )
 		newjob = job.class.new
 		newjob.set_fields( job.values, [:created_at, :task_name] )
-		newjob.task_arguments = job.task_arguments # Re-serialize
+		newjob.task_options = job.task_options # Re-serialize
 
 		return self.add( newjob )
 	end
