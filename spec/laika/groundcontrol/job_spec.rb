@@ -31,9 +31,6 @@ describe 'LAIKA::GroundControl::Job' do
 		@real_taskclasses = LAIKA::GroundControl::Task.derivatives.dup
 
 		setup_test_database()
-		LAIKA::GroundControl::Job.create_schema( :groundcontrol ) unless
-			LAIKA::GroundControl::Job.schema_exists?( :groundcontrol )
-		LAIKA::GroundControl::Job.create_table unless LAIKA::GroundControl::Job.table_exists?
 	end
 
 	before( :each ) do
@@ -42,7 +39,6 @@ describe 'LAIKA::GroundControl::Job' do
 	end
 
 	after( :all ) do
-		LAIKA::GroundControl::Job.truncate
 		cleanup_test_database()
 		LAIKA::GroundControl::Task.derivatives.replace( @real_taskclasses )
 	end
