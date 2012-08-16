@@ -32,7 +32,6 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	plugin :validation_helpers
 	plugin :schema
 	plugin :timestamps
-	plugin :serialization
 
 
 	# Define the schema. If you're changing this, you should also be defining
@@ -79,9 +78,6 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	# Dont allow writes to the 'locked_at' columns via mass updates
 	set_restricted_columns :locked_at
 
-	# Serialize the job's options hash
-	serialize_attributes :marshal, :task_options
-
 
 	# :section:
 
@@ -127,6 +123,18 @@ class LAIKA::GroundControl::Job < LAIKA::Model( :groundcontrol__jobs )
 	### Fetch the LAIKA::GroundControl::Task subclass associated with this job.
 	def task_class
 		return LAIKA::GroundControl::Task.get_subclass( self.task_name )
+	end
+
+
+	### Fetch the unserialized options data as a Hash.
+	def task_options
+		return Marshal.load( self[:task_options] )
+	end
+
+
+	### Set the task options to +newopts+, which should be a Hash of task options.
+	def task_options=( newopts )
+		self[:task_options] = Marshal.dump( newopts )
 	end
 
 
