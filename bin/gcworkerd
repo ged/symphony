@@ -165,10 +165,13 @@ class LAIKA::GroundControl::WorkerDaemon
 			self.start_missing_children unless self.shutting_down?
 
 			# Wait on the selfpipe for signals
-			fds = IO.select( [@selfpipe[:reader]], nil, @selfpipe.values, 0 )
+			self.log.debug "  waiting for the selfpipe"
+			fds = IO.select( [@selfpipe[:reader]] )
 			begin
-				@selfpipe[:reader].read_nonblock( 11 )
-			rescue Errno::EAGAIN, Errno::EINTR
+				rval = @selfpipe[:reader].read_nonblock( 11 )
+				self.log.debug "    read from the selfpipe: %p" % [ rval ]
+			rescue Errno::EAGAIN, Errno::EINTR => err
+				self.log.debug "    %p: %s!" % [ err.class, err.message ]
 				# ignore
 			end
 
