@@ -137,7 +137,10 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	def make_remote_filename
 		template = self.template
 		basename = File.basename( template, File.extname(template) )
-		return Dir::Tmpname.make_tmpname( basename, Process.pid )
+
+		tmpname = Dir::Tmpname.make_tmpname( basename, Process.pid )
+
+		return "/tmp/#{tmpname}"
 	end
 
 
@@ -166,7 +169,7 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 
 	### Run the script on the remote host.
 	def run_script( conn, remote_filename )
-		output = conn.exec!( './' + remote_filename )
+		output = conn.exec!( remote_filename )
 		self.log.debug "Output was:\n#{output}"
 		conn.exec!( "rm #{remote_filename}" )
 	end
