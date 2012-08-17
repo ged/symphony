@@ -1,5 +1,10 @@
 #!/usr/bin/env ruby
 
+require 'shellwords'
+
+require 'laika'
+LAIKA.require_features( :groundcontrol )
+
 require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
 
 
@@ -101,9 +106,9 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 		cmd << '-p' << self.port.to_s
 		cmd << '-i' << self.key if self.key
 		cmd << '-l' << self.user
-		cmd << hostname
+		cmd << fqdn
 		cmd.flatten!
-		self.log.debug "Running SSH command with: %p" % [ cmd ]
+		self.log.debug "Running SSH command with: %p" % [ Shellwords.shelljoin(cmd) ]
 
 		parent_reader, child_writer = IO.pipe
 		child_reader, parent_writer = IO.pipe
