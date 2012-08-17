@@ -32,11 +32,14 @@ It also includes several executables under bin/:
 gcworkerd::
   A daemon which manages startup and shutdown of one or more Workers
   running Jobs from a Queue.
+
+A few more executables are planned:
+
 gcscheduled::
-  A daemon that provides scheduled injection of jobs. (*TODO*)
+  A daemon that provides scheduled injection of jobs.
 groundcontrol::
   A command shell which can manage, inject, schedule, and monitor job
-  execution across multiple Queues. (*TODO*)
+  execution across multiple Queues.
 
 
 == Installation
