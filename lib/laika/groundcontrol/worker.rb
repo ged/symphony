@@ -30,6 +30,7 @@ class LAIKA::GroundControl::Worker
 
 		# Child
 		else
+			self.log.info "Worker %d starting up..." % [ Process.pid ]
 			self.reset_file_descriptors
 			self.set_signal_handlers
 
@@ -104,6 +105,7 @@ class LAIKA::GroundControl::Worker
 
 		LAIKA::DB.connection[ %{SET application_name TO ?}, name ]
 		$0 = name
+		self.log.info( name )
 	end
 
 
@@ -129,7 +131,6 @@ class LAIKA::GroundControl::Worker
 
 	### Wait
 	def wait_for_job
-		self.log.info "Waiting for job"
 		return self.queue.next
 	end
 

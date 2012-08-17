@@ -145,7 +145,7 @@ class LAIKA::GroundControl::Queue
 			:loop         => poll,
 			:timeout      => timeout,
 		}
-		block ||= Proc.new {|*| self.log.info "Got a notification!" }
+		block ||= Proc.new {|*| self.log.debug "Got a notification!" }
 
 		db.listen( self.name, options, &block )
 	end
