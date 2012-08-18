@@ -9,7 +9,7 @@ net-sftp -v2.0.5
 pluginfactory -v1.0.8
 clockwork -v0.4.1
 
-laika-base -v3.1.0 --source http://rubygems.laika.com
+laika-base -v3.2.0 --source http://rubygems.laika.com
 laika-db -v0.9.1  --source http://rubygems.laika.com
 laika-ldap -v3.2.0  --source http://rubygems.laika.com
 

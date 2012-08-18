@@ -21,7 +21,7 @@ hoespec = Hoe.spec 'laika-groundcontrol' do
 
 	self.developer 'Michael Granger', 'mgranger@laika.com'
 
-	self.dependency 'laika-base', '~> 3.1'
+	self.dependency 'laika-base', '~> 3.2'
 	self.dependency 'laika-db', '~> 0.9'
 	self.dependency 'pluginfactory', '~> 1.0'
 	self.dependency 'inversion', '~> 0.11'
