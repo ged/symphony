@@ -42,10 +42,10 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 		:compression             => true,
 		:config                  => false,
 		:keys_only               => true,
-		:logger                  => Loggability[ Net::SSH ],
+		# :logger                  => Loggability[ Net::SSH ],
 		:paranoid                => false,
 		:timeout                 => 10.seconds,
-		:verbose                 => Loggability[ Net::SSH ].level,
+		# :verbose                 => :debug,
 		:global_known_hosts_file => '/dev/null',
 		:user_known_hosts_file   => '/dev/null',
 	}
