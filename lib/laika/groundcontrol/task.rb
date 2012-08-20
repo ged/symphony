@@ -30,8 +30,7 @@ require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 #
 #       def initialize( queue, job )
 #           super
-#           opts = self.job.task_options.shift || {}
-#           @host = opts[:host]
+#           @host = opts[:hostname]
 #       end
 #
 #       attr_reader :host
@@ -48,6 +47,15 @@ require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 #       end
 #
 #   end
+#
+# Tasks will be discovered if they're installed in a gem's <tt>laika/groundcontrol/tasks</tt>
+# directory. If the above example job was in an installed gem under
+# <tt>lib/laika/groundcontrol/tasks/httpcheck.rb</tt>, a job could be queued for execution
+# of it like so:
+#
+#   require 'laika'
+#   LAIKA.require_features( :groundcontrol )
+#   LAIKA::GroundControl.default_queue.add( 'httpcheck', hostname: 'www.example.com' )
 #
 class LAIKA::GroundControl::Task
 	extend Loggability,
