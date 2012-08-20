@@ -3,7 +3,14 @@
 require 'laika' unless defined?( LAIKA )
 require 'laika/exceptions'
 
-# GroundControl -- a task scheduler and job queue for LAIKA IT systems
+# GroundControl -- a task scheduler and job queue for LAIKA IT systems.
+#
+# This module contains the :groundcontrol feature, two exception classes, and a
+# convenience method for fetching a LAIKA::GroundControl::Queue object for the
+# default GroundControl queue.
+#
+# See the README for additional guidance.
+#
 module LAIKA::GroundControl
 
 	# Library version constant
@@ -15,7 +22,7 @@ module LAIKA::GroundControl
 	# Load dependent features
 	LAIKA.require_features( :db, :ldap )
 
-	LAIKA::DB.register_model 'laika/groundcontrol/job'
+	LAIKA::DB.register_model( 'laika/groundcontrol/job' )
 	require 'laika/groundcontrol/queue'
 	require 'laika/groundcontrol/task'
 
