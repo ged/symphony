@@ -79,7 +79,7 @@ class LAIKA::GroundControl::WorkerDaemon
 		self.load_features( opts.features ) if opts.features
 
 		# Now load the config file
-		LAIKA.load_config( argv.shift )
+		LAIKA.load_config( opts.config )
 
 		# Re-enable debug-level logging if the config reset it
 		Loggability.level = :debug if opts.debug
