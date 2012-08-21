@@ -3,6 +3,7 @@
 require 'fcntl'
 require 'loggability'
 require 'configurability'
+require 'trollop'
 
 require 'laika' unless defined?( LAIKA )
 require 'laika/mixins'
@@ -16,16 +17,15 @@ LAIKA.require_features( :groundcontrol )
 # contained in the jobs it fetches.
 class LAIKA::GroundControl::WorkerDaemon
 	extend Loggability,
-		   Configurability,
 		   LAIKA::MethodUtilities
 
 
 	# Loggability API -- log to LAIKA's logger
 	log_to :laika
 
-	# Configurability API -- use the 'gcworkerd' section of the config
-	config_key :gcworkerd
 
+	# VCS revision
+	REVISION = %q$Revision: 1040717e8a22 $
 
 	# The maximum number of children to have running at any given time
 	DEFAULT_CREW_SIZE = 5
@@ -37,32 +37,16 @@ class LAIKA::GroundControl::WorkerDaemon
 	]
 
 
-	#
-	# Configurable settings
-	#
-
-	# The maximum number of workers to run
-	singleton_attr_accessor :crew_size
-
-	# The queue to fetch jobs from; nil (the default) means to use the
-	# default job queue.
-	singleton_attr_accessor :job_queue
-
 
 	#
 	# Class methods
 	#
 
-	### Configurability API -- call with the 'gcworkerd' config when the config is
-	### loaded.
-	def self::configure( config=nil )
-		if config
-			self.crew_size = config[:crew_size] if config.key?( :crew_size )
-			self.job_queue = config[:job_queue] if config.key?( :job_queue )
-		else
-			self.crew_size = DEFAULT_CREW_SIZE
-			self.job_queue = nil
-		end
+	### Get the daemon's version as a String.
+	def self::version_string( include_buildnum=false )
+		vstring = "%s %s" % [ self.name, LAIKA::GroundControl::VERSION ]
+		vstring << " (build %s)" % [ REVISION[/: ([[:xdigit:]]+)/, 1] || '0' ] if include_buildnum
+		return vstring
 	end
 
 
@@ -70,8 +54,57 @@ class LAIKA::GroundControl::WorkerDaemon
 	def self::run( argv )
 		Loggability.format_with( :color ) if $stdout.tty?
 
-		config = LAIKA.load_config( argv.shift )
-		self.new( config ).run
+		progname = File.basename( $0 )
+		opts = Trollop.options do
+			banner "Usage: #{progname} OPTIONS"
+			version LAIKA::GroundControl::WorkerDaemon.version_string( true )
+
+			opt :config, "The config file to load instead of the default",
+				:type => :string
+			opt :crew_size, "Number of workers to maintain.", :default => DEFAULT_CREW_SIZE
+			opt :queue, "The name of the queue to monitor.", :default => '_default_'
+			opt :features, "A list of LAIKA features to load",
+				:type => :strings
+
+			opt :debug, "Turn on debugging output."
+		end
+
+		# Turn on debugging if it's enabled
+		if opts.debug
+			$DEBUG = true
+			Loggability.level = :debug
+		end
+
+		# Handle feature-loading
+		self.load_features( opts.features ) if opts.features
+
+		# Now load the config file
+		LAIKA.load_config( argv.shift )
+
+		# Re-enable debug-level logging if the config reset it
+		Loggability.level = :debug if opts.debug
+
+		# And start the daemon
+		self.new( opts ).run
+	end
+
+
+	### Load any requested features.
+	def self::load_features( features )
+
+		# Handle comma-delimited features by splitting them out into the array
+		features = features.collect do |feature|
+			if feature.include?( ',' )
+				feature.split( /\s*,\s*/ )
+			else
+				feature
+			end
+		end.flatten.compact
+
+		features.each do |feature|
+			LAIKA.require_features( feature )
+		end
+		
 	end
 
 
@@ -80,10 +113,10 @@ class LAIKA::GroundControl::WorkerDaemon
 	#
 
 	### Create a new WorkerDaemon instance.
-	def initialize( config )
-		@config        = config
-		@crew_size     = self.class.crew_size
-		@queue         = LAIKA::GroundControl::Queue.new( self.class.job_queue )
+	def initialize( options )
+		@options       = options
+		@crew_size     = options.crew_size
+		@queue         = LAIKA::GroundControl::Queue.new( options.queue )
 
 		@crew_workers  = []
 		@running       = false
