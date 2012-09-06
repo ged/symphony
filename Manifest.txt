@@ -5,7 +5,6 @@ Manifest.txt
 README.rdoc
 Rakefile
 bin/gcworkerd
-bin/groundcontrol
 lib/laika/groundcontrol.rb
 lib/laika/groundcontrol/job.rb
 lib/laika/groundcontrol/queue.rb
