@@ -14,7 +14,7 @@ require 'laika/exceptions'
 module LAIKA::GroundControl
 
 	# Library version constant
-	VERSION = '0.0.1'
+	VERSION = '0.1.0'
 
 	# Version-control revision constant
 	REVISION = %q$Revision$

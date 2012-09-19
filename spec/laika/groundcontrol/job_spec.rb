@@ -27,10 +27,10 @@ require 'laika/featurebehavior'
 describe 'LAIKA::GroundControl::Job' do
 
 	before( :all ) do
-		setup_logging( :fatal )
 		@real_taskclasses = LAIKA::GroundControl::Task.derivatives.dup
 
 		setup_test_database()
+		setup_logging()
 	end
 
 	before( :each ) do
