@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+gem 'sysexits'
+
+require 'sysexits'
 require 'timeout'
 require 'loggability'
 require 'pluginfactory'
@@ -60,7 +63,8 @@ require 'laika/groundcontrol' unless defined?( LAIKA::GroundControl )
 class LAIKA::GroundControl::Task
 	extend Loggability,
 	       PluginFactory
-	include LAIKA::AbstractClass
+	include Sysexits,
+	        LAIKA::AbstractClass
 
 
 	# Loggability API -- log to LAIKA's logger
@@ -84,6 +88,7 @@ class LAIKA::GroundControl::Task
 		@job     = job
 		@options = job.task_options || {}
 		@timeout = self.options[:timeout] || DEFAULT_TIMEOUT
+		@status  = :success
 	end
 
 
@@ -98,6 +103,9 @@ class LAIKA::GroundControl::Task
 
 	# The number of seconds to wait before timing out when pinging
 	attr_reader :timeout
+
+	# The exit status of the task that will be sent to groundcontrol
+	attr_accessor :status
 
 
 	#
@@ -139,9 +147,11 @@ class LAIKA::GroundControl::Task
 	### super().
 	def on_error( exception )
 		if exception.is_a?( LAIKA::GroundControl::AbortTask )
+			@status = Sysexits::EX_TEMPFAIL
 			self.log.warn "Task aborted by the runner; re-queueing job %s" % [ self.job ]
 			self.queue.re_add( self.job )
 		else
+			@status = Sysexits::EX_SOFTWARE
 			self.log.error "%p while running: %s: %s" %
 				[ exception.class, self.job, exception.message ]
 		end
