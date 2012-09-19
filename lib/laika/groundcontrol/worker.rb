@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+gem 'sysexits' # Thanks Apple!
+
+require 'sysexits'
 require 'loggability'
 
 require 'laika' unless defined?( LAIKA )
@@ -12,6 +15,7 @@ require 'laika/groundcontrol/queue'
 # user code.
 class LAIKA::GroundControl::Worker
 	extend Loggability
+	include Sysexits
 
 	# Loggability API -- log to the LAIKA logger
 	log_to :laika
@@ -30,16 +34,19 @@ class LAIKA::GroundControl::Worker
 
 		# Child
 		else
-			self.log.info "Worker %d starting up..." % [ Process.pid ]
-			self.reset_file_descriptors
-			self.set_signal_handlers
+			status = EX_UNAVAILABLE
 
-			# Run the worker, ensuring the child doesn't return to parent code 
+			# Run the worker, ensuring the child doesn't return to parent code
 			# when finished.
 			begin
-				self.new( queue ).run
+				self.log.info "Worker %d starting up..." % [ Process.pid ]
+				self.reset_file_descriptors
+				self.set_signal_handlers
+
+				status = self.new( queue ).run
 			ensure
-				exit!
+				self.log.debug "  exiting with status: %p" % [ status ]
+				Sysexits.exit!( status )
 			end
 		end
 	end
@@ -71,9 +78,10 @@ class LAIKA::GroundControl::Worker
 
 	### Create a worker that will listen on the specified +queue+ for a job.
 	def initialize( queue )
-		@queue = queue
-		@job = nil
-		@task = nil
+		@queue     = queue
+		@job       = nil
+		@task      = nil
+		@exit_code = :success
 	end
 
 
@@ -120,16 +128,23 @@ class LAIKA::GroundControl::Worker
 
 		self.set_app_name
 		self.run_task( @task )
+
+		return @task.status
+
 	rescue Interrupt
 		self.log.info "Interrupted: shutting down."
+		return :tempfail
+
 	rescue Exception => err
 		self.log.fatal "%p in worker %d: %s" % [ err.class, Process.pid, err.message ]
 		self.log.debug { '  ' + err.backtrace.join("  \n") }
 		@job.destroy unless @task
+
+		return :software
 	end
 
 
-	### Wait
+	### Wait for the next available job, returning it once one is acquired.
 	def wait_for_job
 		return self.queue.next
 	end
@@ -137,7 +152,7 @@ class LAIKA::GroundControl::Worker
 
 	### Run the task
 	def run_task( task )
-		starttime = Time.now
+		starttimes = Process.times
 		task.on_startup
 		task.run
 	rescue StandardError => err
@@ -149,7 +164,11 @@ class LAIKA::GroundControl::Worker
 		task.on_completion
 	ensure
 		task.on_shutdown
-		elapsed = Time.now - starttime
+		endtimes = Process.times
+		self.log.info "  run times: user: %0.3f, system: %0.3f" % [
+			endtimes.utime - starttimes.utime,
+			endtimes.stime - starttimes.stime,
+		]
 	end
 
 
