@@ -27,10 +27,11 @@ hoespec = Hoe.spec 'laika-groundcontrol' do
 	self.dependency 'inversion', '~> 0.11'
 	self.dependency 'net-ssh', '~> 2.5'
 	self.dependency 'net-sftp', '~> 2.0'
+	self.dependency 'sysexits', '~> 1.1'
 
 	self.dependency 'rspec', '~> 2.11', :developer
 
-	self.require_ruby_version( '>=1.8.7' )
+	self.require_ruby_version( '>=1.9.3' )
 	self.hg_sign_tags = true if self.respond_to?( :hg_sign_tags= )
 	self.rdoc_locations << "havnor:/usr/local/laika/www/public/#{remote_rdoc_dir}"
 end
