@@ -64,6 +64,7 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 		@port       = self.options[:port] || 22
 		@user       = self.options[:user] || 'root'
 		@attributes = self.options[:attributes] || {}
+		@nocleanup  = self.options[:nocleanup] ? true : false
 	end
 
 
@@ -88,6 +89,10 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 
 	# Attributes that will be set on the script template.
 	attr_reader :attributes
+
+	# Flag that will cause the uploaded script to not be cleaned up after running. Useful for
+	# diagnostics.
+	attr_reader :nocleanup
 
 
 	### Load the script as an Inversion template, sending and executing
@@ -171,7 +176,7 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	def run_script( conn, remote_filename )
 		output = conn.exec!( remote_filename )
 		self.log.debug "Output was:\n#{output}"
-		conn.exec!( "rm #{remote_filename}" )
+		conn.exec!( "rm #{remote_filename}" ) unless self.nocleanup
 	end
 
 end # class LAIKA::GroundControl::Task::SSHScript
