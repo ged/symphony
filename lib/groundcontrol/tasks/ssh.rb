@@ -1,17 +1,13 @@
 #!/usr/bin/env ruby
 
 require 'shellwords'
-
-require 'laika'
-LAIKA.require_features( :groundcontrol )
-
-require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
+require 'groundcontrol/task' unless defined?( GroundControl::Task )
 
 
 ### A base SSH class for connecting to remote hosts, running commands,
 ### and collecting output.
-class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
-	extend LAIKA::MethodUtilities
+class GroundControl::Task::SSH < GroundControl::Task
+	extend MethodUtilities
 
 	### Create a new SSH task for the given +job+ and +queue+.
 	def initialize( queue, job )
@@ -126,5 +122,5 @@ class LAIKA::GroundControl::Task::SSH < LAIKA::GroundControl::Task
 	end
 
 
-end # class LAIKA::GroundControl::Task::SSH
+end # class GroundControl::Task::SSH
 

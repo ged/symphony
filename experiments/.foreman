@@ -1,1 +1,0 @@
-concurrency: producer=1, consumer=5
