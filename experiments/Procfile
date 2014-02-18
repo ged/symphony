@@ -1,3 +1,0 @@
-#producer: ruby -I../lib producer-sketch.rb
-consumer: ruby -I../lib consumer-sketch.rb
-

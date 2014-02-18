@@ -1,18 +1,10 @@
 # .rvm.gems generated gem export file. Note that any env variable settings will be missing. Append these after using a ';' field separator
 
-foreman -v0.60.2
-hoe-deveiate -v0.1.1
-inversion -v0.11.2
-net-ssh -v2.5.2
-net-sftp -v2.0.5
+hoe-deveiate -v0.4.0
 sysexits -v1.1.0
-
-pluginfactory -v1.0.8
-clockwork -v0.4.1
-
-laika-base -v3.5.0 --source http://rubygems.laika.com
-laika-db -v0.12.1  --source http://rubygems.laika.com
-laika-ldap -v3.5.0  --source http://rubygems.laika.com
-
-simplecov -v0.6.4
-
+loggability -v0.10.0
+configurability -v2.1.2
+pluggability -v0.4.0
+bunny -v1.1.3
+net-ssh -v2.8.0
+net-sftp -v2.1.2

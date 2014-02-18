@@ -4,29 +4,16 @@ require 'net/ssh'
 require 'net/sftp'
 require 'tmpdir'
 require 'inversion'
-require 'laika/groundcontrol/task' unless defined?( LAIKA::GroundControl::Task )
+require 'groundcontrol/task' unless defined?( GroundControl::Task )
 
 
 # A task to execute a script on a remote host via SSH.
-#
-#   require 'laika'
-#
-#   LAIKA.require_features( :groundcontrol )
-#   LAIKA.load_config( 'config.yml' )
-#
-#   queue = LAIKA::GroundControl.default_queue
-#   queue.add( 'sshscript',
-#              hostname: 'roke',
-#              template: 'fbsd-inventory.rb',
-#              key: "#{datadir}/laika-inventory/inventory.rsa",
-#              attributes: { inventorykey: '0f2dbe12c982248662f3dafcab2aade1'} )
-#
-class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
+class GroundControl::Task::SSHScript < GroundControl::Task
 	extend Loggability,
-	       LAIKA::MethodUtilities
+	       MethodUtilities
 
-	# Loggability API -- Log to LAIKA's logger
-	log_to :laika
+	# Loggability API -- Log to groundcontrol's logger
+	log_to :groundcontrol
 
 
 	# Template config
@@ -125,8 +112,6 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 	protected
 	#########
 
-	# Running script 'test_script' on 'roke.pg.laika.com:22' as 'inventory'
-
 	### Return a human-readable description of details of the task.
 	def description
 		return "Running script '%s' on '%s:%d' as '%s'" % [
@@ -179,5 +164,5 @@ class LAIKA::GroundControl::Task::SSHScript < LAIKA::GroundControl::Task
 		conn.exec!( "rm #{remote_filename}" ) unless self.nocleanup
 	end
 
-end # class LAIKA::GroundControl::Task::SSHScript
+end # class GroundControl::Task::SSHScript
 
