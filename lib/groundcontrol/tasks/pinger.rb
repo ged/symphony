@@ -64,13 +64,8 @@ class GroundControl::Task::Pinger < GroundControl::Task
 	#
 
 	### Do the ping.
-	def run( payload, metadata )
-		if ping( payload['hostname'], payload['port'] )
-			Cozy.send_event( 'ping.success', hostname: payload['hostname'] )
-			ack!
-		else
-			nack!
-		end
+	def work( payload, metadata )
+		return ping( payload['hostname'], payload['port'] )
 	end
 
 

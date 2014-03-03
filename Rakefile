@@ -25,8 +25,9 @@ hoespec = Hoe.spec 'groundcontrol' do
 	self.dependency 'pluggability', '~> 0.4'
 	self.dependency 'bunny', '~> 1.1'
 	self.dependency 'sysexits', '~> 1.1'
+	self.dependency 'yajl-ruby', '~> 1.2'
 
-	self.dependency 'rspec', '~> 2.14', :developer
+	self.dependency 'rspec', '~> 3.0', :developer
 	self.dependency 'net-ssh', '~> 2.8', :developer
 	self.dependency 'net-sftp', '~> 2.1', :developer
 

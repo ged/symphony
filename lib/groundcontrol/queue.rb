@@ -101,12 +101,61 @@ class GroundControl::Queue
 	end
 
 
-	### Fetch the configured AMQP exchange, creating it first if necessary.
+	### Fetch the configured AMQP exchange interface object.
 	def self::amqp_exchange
 		unless self.amqp[:exchange]
 			self.amqp[:exchange] = self.amqp_channel.topic( self.exchange, passive: true )
 		end
 		return self.amqp[:exchange]
+	end
+
+
+	### Create a new Queue for the specified +task_class+.
+	def initialize( task_class )
+		@task_class = task_class
+	end
+
+
+	# The Class of the Task that the queue belongs to
+	attr_reader :task_class
+
+
+	### The main work loop -- subscribe to the message queue and yield the payload and
+	### associated metadata when one is received.
+	def each_message( &block )
+		raise LocalJumpError, "no block given" unless block
+
+		ack_mode = self.task_class.acknowledge
+
+		queue = self.create_queue
+		queue.subscribe( ack: ack_mode, &block )
+	end
+
+
+	### Create the AMQP queue from the task class and bind it to the configured exchange.
+	def create_queue
+		exchange = self.amqp_exchange
+		channel = self.amqp_channel
+
+		begin
+			return channel.queue( self.task_class.queue_name, passive: true )
+		rescue Bunny::NotFound => err
+			self.log.info "%s; using an auto-delete queue instead." % [ err.message ]
+			queue = channel.queue( self.task_class.queue_name, auto_delete: true )
+			self.task_class.subscribe_to.each do |key|
+				self.log.info "  binding queue %s to the %s exchange with topic key: %s" %
+					[ self.task_class.queue_name, exchange.name, key ]
+				queue.bind( exchange, topic_key: key )
+			end
+
+			return queue
+		end
+	end
+
+	### Close the AMQP session associated with this queue.
+	def close
+		@amqp_queue = nil
+		self.class.amqp_session.close
 	end
 
 end # class GroundControl::Queue
