@@ -77,5 +77,44 @@ describe GroundControl::Queue do
 			expect( described_class.amqp_exchange ).to be( exchange )
 		end
 	end
+
+
+	context "instance" do
+
+
+		before( :each ) do
+			@testing_task_class = Class.new( GroundControl::Task )
+			@bunny = double( "Bunny session" )
+			@channel = double( "Bunny channel" )
+			@exchange = double( "GroundControl exchange" )
+
+			allow( Bunny ).to receive( :new ).
+				with( described_class.broker_uri, described_class.amqp_session_options ).
+				and_return( @bunny )
+			allow( @bunny ).to receive( :start )
+			allow( @bunny ).to receive( :create_channel ).and_return( @channel )
+			allow( @channel ).to receive( :topic ).
+				with( described_class.exchange, passive: true ).
+				and_return( @exchange )
+		end
+
+		it "creates an auto-deleted queue for the task if one doesn't already exist" do
+			@testing_task_class.subscribe_to 'tests.unit'
+			queue = described_class.new( @testing_task_class )
+
+			expected_exception = Bunny::NotFound.new( "oopsie! no queue!", @channel, :frame )
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, passive: true ).
+				and_raise( expected_exception )
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, auto_delete: true ).
+				and_return( queue )
+
+			
+		end
+
+
+	end
+
 end
 

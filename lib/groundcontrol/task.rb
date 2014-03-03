@@ -5,6 +5,9 @@ require 'sysexits'
 require 'pluggability'
 require 'loggability'
 
+require 'yajl'
+require 'yaml'
+
 require 'groundcontrol' unless defined?( GroundControl )
 
 
@@ -34,10 +37,36 @@ class GroundControl::Task
 	end
 
 
-	### Fork and start a worker listening for work on the specified +queue+ (a
-	### GroundControl::Queue). Returns the +pid+ of the worker process.
+	### Create a new Task object and listen for work. Exits with the code returned
+	### by #start when it's done.
 	def self::run
 		exit self.new( self.queue ).start
+	end
+
+
+	### Return a normalized name for this task's queue.
+	def self::queue_name
+		name = self.name || "anonymous task %d" % [ self.object_id ]
+		return name.gsub( /\W+/, '.' ).downcase
+	end
+
+
+	### Set up one or more topic key patterns to use when binding the Task's queue
+	### to the exchange.
+	def self::subscribe_to( *routing_keys )
+		unless routing_keys.empty?
+			@routing_keys = routing_keys
+		end
+
+		return @routing_keys
+	end
+
+
+	### Inheritance hook -- set some defaults on subclasses.
+	def self::inherited( subclass )
+		super
+
+		subclass.instance_variable_set( :@routing_keys, [] )
 	end
 
 
@@ -56,8 +85,7 @@ class GroundControl::Task
 	attr_reader :queue
 
 
-	### Run the worker by waiting for a job, running the task the job specifies,
-	### then exiting with a status that indicates the job's success or failure.
+	### Set up the task and start handling messages.
 	def start
 		self.set_signal_traps( *SIGNALS )
 		self.start_signal_handler
@@ -74,7 +102,7 @@ class GroundControl::Task
 	end
 
 
-	### Start the thread that will delivery signals once they're put on the queue.
+	### Start the thread that will deliver signals once they're put on the queue.
 	def start_signal_handler
 		@signal_handler = Thread.new do
 			loop { self.wait_for_signals }
@@ -92,15 +120,57 @@ class GroundControl::Task
 	### queue.
 	def handle_signal( sig )
 		self.log.debug "Handling signal %s" % [ sig ]
-
-		
-		# :TODO: Dispatch the mandatory signals, call hooks for optional ones.
+		case sig
+		when :TERM
+			self.on_terminate
+		when :INT
+			self.on_interrupt
+		when :HUP
+			self.on_hangup
+		when :CHLD
+			self.on_child_exit
+		else
+			self.log.warn "Unhandled signal %s" % [ sig ]
+		end
 	end
 
 
-	### Start consuming messages from the queue, calling #run for each one.
+	### Start consuming messages from the queue, calling #work for each one.
 	def start_handling_messages
-		# :TODO: Everything else
+		# TODO: Handle oneshot work model
+		self.queue.each_message do |payload, metadata|
+			work_payload = self.preprocess_payload( payload, metadata )
+			self.work( work_payload, metadata )
+		end
+	end
+
+
+	### Do any necessary pre-processing on the raw +payload+ according to values in
+	### the given +metadata+.
+	def preprocess_payload( payload, metadata )
+		work_payload = case metadata[:content_type]
+			when 'application/json', 'text/javascript'
+				Yajl.parse( payload )
+			when 'application/x-yaml', 'text/x-yaml'
+				YAML.load( payload )
+			else
+				payload
+			end
+
+		return work_payload
+	end
+
+
+	### Do work based on the given message +payload+ and +metadata+.
+	def work( payload, metadata )
+		raise NotImplementedError,
+			"%p doesn't implement required method #work" % [ self.class ]
+	end
+
+
+	### Handle a termination signal.
+	def on_terminate
+		self.queue.close
 	end
 
 end # class GroundControl::Task

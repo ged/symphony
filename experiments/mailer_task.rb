@@ -6,4 +6,3 @@ require 'yajl'
 
 # A spike to play around with a flattened-out task
 
-session = Bunny.new(  )
