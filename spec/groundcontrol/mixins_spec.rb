@@ -53,10 +53,10 @@ describe GroundControl, 'mixins' do
 			expect( instance ).to_not respond_to( :foo= )
 			expect( instance ).to respond_to( :foo? )
 
-			expect( instance.foo? ).to be_false
+			expect( instance.foo? ).to eq( false )
 
 			instance.instance_variable_set( :@foo, 1 )
-			expect( instance.foo? ).to be_true
+			expect( instance.foo? ).to eq( true )
 		end
 
 		it "can declare an instance attribute predicate and writer" do
@@ -67,10 +67,10 @@ describe GroundControl, 'mixins' do
 			expect( instance ).to respond_to( :foo= )
 			expect( instance ).to respond_to( :foo? )
 
-			expect( instance.foo? ).to be_false
+			expect( instance.foo? ).to eq( false )
 
 			instance.foo = 1
-			expect( instance.foo? ).to be_true
+			expect( instance.foo? ).to eq( true )
 		end
 
 	end

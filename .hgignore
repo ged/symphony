@@ -11,3 +11,4 @@ pkg/
 ^doc/
 ^coverage/
 
+\.gemspec$

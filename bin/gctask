@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+
+require 'groundcontrol'
+require 'groundcontrol/task'
+
+taskname = ARGV.shift or raise "no task name given"
+
+GroundControl.load_config( 'etc/config.yml' )
+GroundControl::Task.get_subclass( taskname ).run
+

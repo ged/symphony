@@ -1,3 +1,8 @@
+== v0.3.0 []
+
+Rewritten for AMQP (and possibly other similar message buses)
+
+
 == v0.1.0 [2012-09-19] Michael Granger <ged@FaerieMUD.org>
 
 - Added beginnings of worker throttling.

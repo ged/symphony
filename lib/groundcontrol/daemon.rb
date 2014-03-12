@@ -41,16 +41,6 @@ class GroundControl::Daemon
 	THROTTLE_FACTOR = 2
 
 
-
-	# def start
-	# 	tasks = GroundControl::Task.load_all
-	# 
-	# 	tasks.each do |task|
-	# 		@children[ task ] = Process.fork( &task.method(:run) )
-	# 	end
-	# 
-	# end
-
 	#
 	# Class methods
 	#

@@ -8,7 +8,7 @@ require 'groundcontrol'
 
 describe GroundControl do
 
-	
+
 
 end
 

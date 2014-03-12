@@ -11,6 +11,10 @@ describe GroundControl::Queue do
 		described_class.configure( broker_uri: 'amqp://example.com/%2Ftesty' )
 	end
 
+	before( :each ) do
+		described_class.reset
+	end
+
 
 	it_should_behave_like "an object with Configurability"
 
@@ -24,10 +28,6 @@ describe GroundControl::Queue do
 
 
 	context "bunny interaction" do
-
-		before( :each ) do
-			described_class.reset
-		end
 
 
 		it "can build a new Bunny session using the loaded configuration" do
@@ -81,7 +81,6 @@ describe GroundControl::Queue do
 
 	context "instance" do
 
-
 		before( :each ) do
 			@testing_task_class = Class.new( GroundControl::Task )
 			@bunny = double( "Bunny session" )
@@ -102,17 +101,101 @@ describe GroundControl::Queue do
 			@testing_task_class.subscribe_to 'tests.unit'
 			queue = described_class.new( @testing_task_class )
 
+			amqp_queue = double( "amqp queue" )
+			allow( @exchange ).to receive( :name ).and_return( "exchange" )
+
 			expected_exception = Bunny::NotFound.new( "oopsie! no queue!", @channel, :frame )
 			expect( @channel ).to receive( :queue ).
 				with( @testing_task_class.queue_name, passive: true ).
 				and_raise( expected_exception )
+			expect( @channel ).to receive( :open? ).and_return( false )
 			expect( @channel ).to receive( :queue ).
 				with( @testing_task_class.queue_name, auto_delete: true ).
-				and_return( queue )
+				and_return( amqp_queue )
+			expect( amqp_queue ).to receive( :bind ).
+				with( @exchange, routing_key: 'tests.unit' )
 
-			
+			expect( queue.create_queue ).to be( amqp_queue )
 		end
 
+		it "re-uses the existing queue on the broker if it already exists" do
+			@testing_task_class.subscribe_to 'tests.unit'
+			queue = described_class.new( @testing_task_class )
+
+			amqp_queue = double( "amqp queue" )
+			allow( @exchange ).to receive( :name ).and_return( "exchange" )
+
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+
+			expect( queue.create_queue ).to be( amqp_queue )
+		end
+
+
+		it "subscribes with ACKs enabled if the task it belongs to has acknowledgements set" do
+			@testing_task_class.acknowledge( true )
+			@testing_task_class.subscribe_to 'tests.unit'
+			queue = described_class.new( @testing_task_class )
+
+			amqp_queue = double( "amqp queue" )
+			allow( @exchange ).to receive( :name ).and_return( "exchange" )
+
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( amqp_queue ).to receive( :subscribe ).
+				with( ack: true, block: true, consumer_tag: @testing_task_class.consumer_tag )
+
+			queue.each_message { }
+		end
+
+
+		it "subscribes with ACKs disabled if the task it belongs to has acknowledgements unset" do
+			@testing_task_class.acknowledge( false )
+			@testing_task_class.subscribe_to 'tests.unit'
+			queue = described_class.new( @testing_task_class )
+
+			amqp_queue = double( "amqp queue" )
+			allow( @exchange ).to receive( :name ).and_return( "exchange" )
+
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( amqp_queue ).to receive( :subscribe ).
+				with( ack: false, block: true, consumer_tag: @testing_task_class.consumer_tag )
+
+			queue.each_message { }
+		end
+
+
+		it "yields the payload and metadata to the block passed to #each_message" do
+			@testing_task_class.subscribe_to 'tests.unit'
+			queue = described_class.new( @testing_task_class )
+			delivery_info = double( "delivery info", delivery_tag: 128 )
+
+			amqp_queue = double( "amqp queue" )
+			allow( @exchange ).to receive( :name ).and_return( "exchange" )
+
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( amqp_queue ).to receive( :subscribe ).
+				and_yield( delivery_info, {content_type: 'text/plain'}, :payload )
+			expect( @channel ).to receive( :acknowledge ).with( delivery_info.delivery_tag )
+
+			queue.each_message do |payload, metadata|
+				expect( payload ).to eq( :payload )
+				expect( metadata ).to eq({
+					content_type: 'text/plain',
+					properties: {content_type: 'text/plain'},
+					delivery_info: delivery_info
+				})
+			end
+		end
+
+
+		it "sets the consumer key to something useful when it subscribes"
 
 	end
 

@@ -6,34 +6,39 @@ rescue LoadError
 	abort "This Rakefile requires hoe (gem install hoe)"
 end
 
+GEMSPEC = 'groundcontrol.gemspec'
+
+
 Hoe.plugin :mercurial
 Hoe.plugin :signing
 Hoe.plugin :deveiate
+Hoe.plugin :bundler
 
 Hoe.plugins.delete :rubyforge
 Hoe.plugins.delete :gemcutter
 
-hoespec = Hoe.spec 'groundcontrol' do
-	self.readme_file = 'README.rdoc'
-	self.history_file = 'History.rdoc'
-	self.extra_rdoc_files = FileList[ '*.rdoc' ]
-	self.spec_extras[:rdoc_options] = ['-f', 'fivefish', '-t', 'GroundControl']
+hoespec = Hoe.spec 'groundcontrol' do |spec|
+	spec.readme_file = 'README.rdoc'
+	spec.history_file = 'History.rdoc'
+	spec.extra_rdoc_files = FileList[ '*.rdoc' ]
+	spec.spec_extras[:rdoc_options] = ['-f', 'fivefish', '-t', 'GroundControl']
+	spec.license 'BSD'
 
-	self.developer 'Michael Granger', 'ged@FaerieMUD.org'
-	self.developer 'Mahlon E. Smith', 'mahlon@martini.nu'
+	spec.developer 'Michael Granger', 'ged@FaerieMUD.org'
+	spec.developer 'Mahlon E. Smith', 'mahlon@martini.nu'
 
-	self.dependency 'pluggability', '~> 0.4'
-	self.dependency 'bunny', '~> 1.1'
-	self.dependency 'sysexits', '~> 1.1'
-	self.dependency 'yajl-ruby', '~> 1.2'
+	spec.dependency 'pluggability', '~> 0.4'
+	spec.dependency 'bunny', '~> 1.1'
+	spec.dependency 'sysexits', '~> 1.1'
+	spec.dependency 'yajl-ruby', '~> 1.2'
 
-	self.dependency 'rspec', '~> 3.0', :developer
-	self.dependency 'net-ssh', '~> 2.8', :developer
-	self.dependency 'net-sftp', '~> 2.1', :developer
+	spec.dependency 'rspec', '~> 3.0', :developer
+	spec.dependency 'net-ssh', '~> 2.8', :developer
+	spec.dependency 'net-sftp', '~> 2.1', :developer
 
-	self.require_ruby_version( '>=1.9.3' )
-	self.hg_sign_tags = true if self.respond_to?( :hg_sign_tags= )
-	self.rdoc_locations << "havnor:/usr/local/www/public/#{remote_rdoc_dir}"
+	spec.require_ruby_version( '>=1.9.3' )
+	spec.hg_sign_tags = true if spec.respond_to?( :hg_sign_tags= )
+	spec.rdoc_locations << "havnor:/usr/local/www/public/#{remote_rdoc_dir}"
 end
 
 ENV['VERSION'] ||= hoespec.spec.version.to_s
@@ -50,4 +55,18 @@ task :coverage do
 	ENV["COVERAGE"] = 'yes'
 	Rake::Task[:spec].invoke
 end
+
+
+task :gemspec => GEMSPEC
+file GEMSPEC => __FILE__ do |task|
+	spec = $hoespec.spec
+	spec.files.delete( '.gemtest' )
+	spec.signing_key = nil
+	spec.version = "#{spec.version}.pre#{Time.now.strftime("%Y%m%d%H%M%S")}"
+	File.open( task.name, 'w' ) do |fh|
+		fh.write( spec.to_ruby )
+	end
+end
+
+task :default => :gemspec
 
