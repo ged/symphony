@@ -96,14 +96,15 @@ class GroundControl::Queue
 
 	### Fetch a Hash that stores per-thread AMQP objects.
 	def self::amqp
-		Thread.current[:groundcontrol] ||= {}
-		return Thread.current[:groundcontrol]
+		Thread.main[:groundcontrol] ||= {}
+		return Thread.main[:groundcontrol]
 	end
 
 
 	### Fetch the AMQP channel, creating one if necessary.
 	def self::amqp_channel
 		unless self.amqp[:channel]
+			self.log.debug "Creating a new AMQP channel"
 			self.amqp_session.start
 			channel = self.amqp_session.create_channel
 			self.amqp[:channel] = channel
@@ -133,51 +134,83 @@ class GroundControl::Queue
 	end
 
 
-	### Create a new Queue for the specified +task_class+.
-	def initialize( task_class )
-		@task_class = task_class
+	### Create a new Queue with the specified configuration.
+	def initialize( name, acknowledge, consumer_tag, routing_keys )
+		@name         = name
+		@acknowledge  = acknowledge
+		@consumer_tag = consumer_tag
+		@routing_keys = routing_keys
 	end
 
 
-	# The Class of the Task that the queue belongs to
-	attr_reader :task_class
+	######
+	public
+	######
+
+	# The name of the queue
+	attr_reader :name
+
+	# Acknowledge mode
+	attr_reader :acknowledge
+
+	# The tag to use when setting up consumer
+	attr_reader :consumer_tag
+
+	# The Array of routing keys to use when binding the queue to the exchange
+	attr_reader :routing_keys
 
 
 	### The main work loop -- subscribe to the message queue and yield the payload and
 	### associated metadata when one is received.
-	def each_message( &block )
+	def wait_for_message( only_one=false, &block )
 		raise LocalJumpError, "no block given" unless block
 
 		amqp_queue = self.create_queue
-		ackmode = self.task_class.acknowledge
 		opts = {
 			block: true,
-			ack: ackmode,
-			consumer_tag: self.task_class.consumer_tag
+			ack: self.acknowledge,
+			consumer_tag: self.consumer_tag
 		}
-		channel = self.class.amqp_channel
 
 		amqp_queue.subscribe( opts ) do |delivery_info, properties, payload|
-			begin
-				metadata = {
-					delivery_info: delivery_info,
-					properties: properties,
-					content_type: properties[:content_type],
-				}
-				rval = block.call( payload, metadata )
-				if ackmode && rval
-					self.log.debug "ACKing message %s" % [ delivery_info.delivery_tag ]
-					channel.acknowledge( delivery_info.delivery_tag )
-				end
-			rescue => err
-				self.log.error "%p while handling a message: %s" % [ err.class, err.message ]
-				self.log.debug "  " + err.backtrace.join( "\n  " )
-				if ackmode
-					self.log.debug "NACKing message %s" % [ delivery_info.delivery_tag ]
-					channel.reject( delivery_info.delivery_tag, true )
-				end
-			end
+			rval = self.handle_message( delivery_info, properties, payload, block )
+			break( rval ) if only_one
 		end
+	end
+
+
+	### Handle each subscribed message.
+	def handle_message( delivery_info, properties, payload, block )
+		metadata = {
+			delivery_info: delivery_info,
+			properties: properties,
+			content_type: properties[:content_type],
+		}
+		rval = block.call( payload, metadata )
+		return self.ack_message( delivery_info.delivery_tag, rval )
+
+	rescue => err
+		self.log.error "%p while handling a message: %s" % [ err.class, err.message ]
+		self.log.debug "  " + err.backtrace.join( "\n  " )
+		return self.ack_message( delivery_info.delivery_tag, false )
+	end
+
+
+	### Signal a acknowledgement or rejection for a message.
+	def ack_message( tag, success )
+		return unless self.acknowledge
+
+		channel = self.class.amqp_channel
+
+		if success
+			self.log.debug "ACKing message %s" % [ tag ]
+			channel.acknowledge( tag )
+		else
+			self.log.debug "NACKing message %s" % [ tag ]
+			channel.reject( tag, true )
+		end
+
+		return success
 	end
 
 
@@ -187,17 +220,17 @@ class GroundControl::Queue
 		channel = self.class.amqp_channel
 
 		begin
-			queue = channel.queue( self.task_class.queue_name, passive: true )
-			self.log.info "Using pre-existing queue: %s" % [ self.task_class.queue_name ]
+			queue = channel.queue( self.name, passive: true )
+			self.log.info "Using pre-existing queue: %s" % [ self.name ]
 			return queue
 		rescue Bunny::NotFound => err
 			self.log.info "%s; using an auto-delete queue instead." % [ err.message ]
 			channel = self.class.reset_amqp_channel
 
-			queue = channel.queue( self.task_class.queue_name, auto_delete: true )
-			self.task_class.subscribe_to.each do |key|
+			queue = channel.queue( self.name, auto_delete: true )
+			self.routing_key.each do |key|
 				self.log.info "  binding queue %s to the %s exchange with topic key: %s" %
-					[ self.task_class.queue_name, exchange.name, key ]
+					[ self.name, exchange.name, key ]
 				queue.bind( exchange, routing_key: key )
 			end
 

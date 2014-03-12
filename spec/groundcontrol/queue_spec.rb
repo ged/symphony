@@ -97,6 +97,7 @@ describe GroundControl::Queue do
 				and_return( @exchange )
 		end
 
+
 		it "creates an auto-deleted queue for the task if one doesn't already exist" do
 			@testing_task_class.subscribe_to 'tests.unit'
 			queue = described_class.new( @testing_task_class )
@@ -117,6 +118,7 @@ describe GroundControl::Queue do
 
 			expect( queue.create_queue ).to be( amqp_queue )
 		end
+
 
 		it "re-uses the existing queue on the broker if it already exists" do
 			@testing_task_class.subscribe_to 'tests.unit'
@@ -184,18 +186,62 @@ describe GroundControl::Queue do
 				and_yield( delivery_info, {content_type: 'text/plain'}, :payload )
 			expect( @channel ).to receive( :acknowledge ).with( delivery_info.delivery_tag )
 
+			message_params = []
 			queue.each_message do |payload, metadata|
-				expect( payload ).to eq( :payload )
-				expect( metadata ).to eq({
-					content_type: 'text/plain',
-					properties: {content_type: 'text/plain'},
-					delivery_info: delivery_info
-				})
+				message_params << payload << metadata
+				true
+			end
+			expect( message_params[0] ).to eq( :payload )
+			expect( message_params[1] ).to eq({
+				content_type: 'text/plain',
+				properties: {content_type: 'text/plain'},
+				delivery_info: delivery_info
+			})
+		end
+
+
+		it "it NACKs the message if acknowledgements are set and the task raises" do
+			@testing_task_class.subscribe_to 'tests.unit'
+			queue = described_class.new( @testing_task_class )
+			delivery_info = double( "delivery info", delivery_tag: 128 )
+
+			amqp_queue = double( "amqp queue" )
+			allow( @exchange ).to receive( :name ).and_return( "exchange" )
+
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( amqp_queue ).to receive( :subscribe ).
+				and_yield( delivery_info, {content_type: 'text/plain'}, :payload )
+			expect( @channel ).to receive( :reject ).with( delivery_info.delivery_tag, true )
+
+			queue.each_message do |*|
+				raise "Ooops! I dropped it!"
 			end
 		end
 
 
-		it "sets the consumer key to something useful when it subscribes"
+		it "it NACKs the message if acknowledgements are set and the task returns a false value" do
+			@testing_task_class.subscribe_to 'tests.unit'
+			queue = described_class.new( @testing_task_class )
+			delivery_info = double( "delivery info", delivery_tag: 128 )
+
+			amqp_queue = double( "amqp queue" )
+			allow( @exchange ).to receive( :name ).and_return( "exchange" )
+
+			expect( @channel ).to receive( :queue ).
+				with( @testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( amqp_queue ).to receive( :subscribe ).
+				and_yield( delivery_info, {content_type: 'text/plain'}, :payload )
+			expect( @channel ).to receive( :reject ).with( delivery_info.delivery_tag, true )
+
+			queue.each_message do |*|
+				false
+			end
+		end
+
+
 
 	end
 

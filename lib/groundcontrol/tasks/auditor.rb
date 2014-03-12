@@ -31,8 +31,9 @@ class Auditor < GroundControl::Task
 	# Do the ping.
 	def work( payload, metadata )
 		msg = "%s %s" % [ metadata, payload ]
-		puts( msg )
+		puts( payload.inspect )
 		@log.puts( msg )
+		return true
 	end
 
 

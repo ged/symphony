@@ -23,7 +23,10 @@ class GroundControl::Task
 
 
 	# Signal to reset to defaults for the child
-	SIGNALS = [ :QUIT, :INT, :TERM, :HUP, :USR1, :USR2, :WINCH ]
+	SIGNALS = %i[ QUIT INT TERM HUP USR1 USR2 WINCH ]
+
+	# Valid work model types
+	WORK_MODELS = %i[ longlived oneshot ]
 
 
 	# Loggability API -- log to groundcontrol's logger
@@ -59,7 +62,13 @@ class GroundControl::Task
 	### Fetch the GroundControl::Queue for this task, creating it if necessary.
 	def self::queue
 		unless @queue
-			@queue = GroundControl::Queue.new( self )
+			queue_args = [
+				self.queue_name,
+				self.acknowledge,
+				self.consumer_tag,
+				self.routing_keys
+			]
+			@queue = GroundControl::Queue.new( *queue_args )
 		end
 		return @queue
 	end
@@ -128,8 +137,9 @@ class GroundControl::Task
 	def self::work_model( new_setting=nil )
 		if new_setting
 			new_setting = new_setting.to_sym
-			unless [ :longlived, :oneshot ].include?( new_setting )
-				raise "Unknown work_model %p (must be 'longlived' or 'oneshot')" % [ new_setting ]
+			unless WORK_MODELS.include?( new_setting )
+				raise "Unknown work_model %p (must be one of: %s)" %
+					[ new_setting, WORK_MODELS.join(', ') ]
 			end
 
 			self.log.info "Setting task work model to: %p." % [ new_setting ]
@@ -165,17 +175,29 @@ class GroundControl::Task
 		self.set_up_signal_handling
 		self.set_signal_traps( *SIGNALS )
 		self.start_signal_handler
-		# :TODO: One-shot?
-		self.start_handling_messages
+
+		rval = self.start_handling_messages
+
 		self.stop_signal_handler
 		self.reset_signal_traps( *SIGNALS )
 
-		return :success
+		return rval ? 0 : 1
+
 	rescue Exception => err
 		self.log.fatal "%p in %p: %s" % [ err.class, self.class, err.message ]
 		self.log.debug { '  ' + err.backtrace.join("  \n") }
 
 		return :software
+	end
+
+
+	### Start consuming messages from the queue, calling #work for each one.
+	def start_handling_messages
+		oneshot = self.class.work_model == :oneshot
+		return self.queue.wait_for_message( oneshot ) do |payload, metadata|
+			work_payload = self.preprocess_payload( payload, metadata )
+			self.work( work_payload, metadata )
+		end
 	end
 
 
@@ -212,16 +234,6 @@ class GroundControl::Task
 			self.on_child_exit
 		else
 			self.log.warn "Unhandled signal %s" % [ sig ]
-		end
-	end
-
-
-	### Start consuming messages from the queue, calling #work for each one.
-	def start_handling_messages
-		# TODO: Handle oneshot work model
-		self.queue.each_message do |payload, metadata|
-			work_payload = self.preprocess_payload( payload, metadata )
-			self.work( work_payload, metadata )
 		end
 	end
 
