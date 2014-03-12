@@ -189,6 +189,12 @@ class GroundControl::Queue
 		rval = block.call( payload, metadata )
 		return self.ack_message( delivery_info.delivery_tag, rval )
 
+	# Re-raise errors from AMQP
+	rescue Bunny::Exception => err
+		self.log.error "%p while handling a message: %s" % [ err.class, err.message ]
+		self.log.debug "  " + err.backtrace.join( "\n  " )
+		raise
+
 	rescue => err
 		self.log.error "%p while handling a message: %s" % [ err.class, err.message ]
 		self.log.debug "  " + err.backtrace.join( "\n  " )
