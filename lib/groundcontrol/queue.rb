@@ -49,7 +49,18 @@ class GroundControl::Queue
 	def self::configure( config=nil )
 		config = self.defaults.merge( config || {} )
 
-		self.broker_uri   = config.delete( :broker_uri )
+		if (( uri = config.delete(:url) ))
+			self.log.debug "Using the url+vhost style config"
+			uri += '/' unless uri.end_with?( '/' )
+			uri += config[:vhost].gsub('/', '%2F') if config[:vhost]
+			self.broker_uri = uri.to_s
+		elsif (( uri = config.delete(:broker_uri) ))
+			self.log.debug "Using the broker_uri-style config"
+			self.broker_uri = uri
+		else
+			self.log.warn "No broker config; looked for 'url' and 'broker_uri'"
+		end
+
 		self.exchange     = config.delete( :exchange )
 		self.session_opts = config
 	end
@@ -101,6 +112,18 @@ class GroundControl::Queue
 	end
 
 
+	### Close and remove the current AMQP channel, e.g., after an error.
+	def self::reset_amqp_channel
+		if self.amqp[:channel]
+			self.log.info "Resetting AMQP channel."
+			self.amqp[:channel].close if self.amqp[:channel].open?
+			self.amqp.delete( :channel )
+		end
+
+		return self.amqp_channel
+	end
+
+
 	### Fetch the configured AMQP exchange interface object.
 	def self::amqp_exchange
 		unless self.amqp[:exchange]
@@ -125,27 +148,57 @@ class GroundControl::Queue
 	def each_message( &block )
 		raise LocalJumpError, "no block given" unless block
 
-		ack_mode = self.task_class.acknowledge
+		amqp_queue = self.create_queue
+		ackmode = self.task_class.acknowledge
+		opts = {
+			block: true,
+			ack: ackmode,
+			consumer_tag: self.task_class.consumer_tag
+		}
+		channel = self.class.amqp_channel
 
-		queue = self.create_queue
-		queue.subscribe( ack: ack_mode, &block )
+		amqp_queue.subscribe( opts ) do |delivery_info, properties, payload|
+			begin
+				metadata = {
+					delivery_info: delivery_info,
+					properties: properties,
+					content_type: properties[:content_type],
+				}
+				rval = block.call( payload, metadata )
+				if ackmode && rval
+					self.log.debug "ACKing message %s" % [ delivery_info.delivery_tag ]
+					channel.acknowledge( delivery_info.delivery_tag )
+				end
+			rescue => err
+				self.log.error "%p while handling a message: %s" % [ err.class, err.message ]
+				self.log.debug "  " + err.backtrace.join( "\n  " )
+				if ackmode
+					self.log.debug "NACKing message %s" % [ delivery_info.delivery_tag ]
+					channel.reject( delivery_info.delivery_tag, true )
+				end
+			end
+		end
 	end
 
 
 	### Create the AMQP queue from the task class and bind it to the configured exchange.
 	def create_queue
-		exchange = self.amqp_exchange
-		channel = self.amqp_channel
+		exchange = self.class.amqp_exchange
+		channel = self.class.amqp_channel
 
 		begin
-			return channel.queue( self.task_class.queue_name, passive: true )
+			queue = channel.queue( self.task_class.queue_name, passive: true )
+			self.log.info "Using pre-existing queue: %s" % [ self.task_class.queue_name ]
+			return queue
 		rescue Bunny::NotFound => err
 			self.log.info "%s; using an auto-delete queue instead." % [ err.message ]
+			channel = self.class.reset_amqp_channel
+
 			queue = channel.queue( self.task_class.queue_name, auto_delete: true )
 			self.task_class.subscribe_to.each do |key|
 				self.log.info "  binding queue %s to the %s exchange with topic key: %s" %
 					[ self.task_class.queue_name, exchange.name, key ]
-				queue.bind( exchange, topic_key: key )
+				queue.bind( exchange, routing_key: key )
 			end
 
 			return queue

@@ -30,7 +30,7 @@ module GroundControl::SignalHandling
 
 		# Wait on the selfpipe for signals
 		self.log.debug "  waiting for the selfpipe"
-		fds = IO.select( [@selfpipe[:reader]], nil, nil, timeout )
+		fds = IO.select( [@selfpipe[:reader]] )
 		begin
 			rval = @selfpipe[:reader].read_nonblock( 11 )
 			self.log.debug "    read from the selfpipe: %p" % [ rval ]
@@ -41,6 +41,7 @@ module GroundControl::SignalHandling
 
 		# Look for any signals that arrived and handle them
 		while sig = Thread.main[:signal_queue].shift
+			self.log.debug "  got a queued signal: %p" % [ sig ]
 			self.handle_signal( sig )
 		end
 	end
@@ -62,7 +63,10 @@ module GroundControl::SignalHandling
 	def set_signal_traps( *signals )
 		self.log.debug "Setting up deferred signal handlers."
 		signals.each do |sig|
-			Signal.trap( sig ) { Thread.main[:signal_queue] << sig; self.wake_up }
+			Signal.trap( sig ) do
+				Thread.main[:signal_queue] << sig
+				self.wake_up
+			end
 		end
 	end
 
