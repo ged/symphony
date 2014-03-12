@@ -96,8 +96,8 @@ class GroundControl::Queue
 
 	### Fetch a Hash that stores per-thread AMQP objects.
 	def self::amqp
-		Thread.main[:groundcontrol] ||= {}
-		return Thread.main[:groundcontrol]
+		@groundcontrol ||= {}
+		return @groundcontrol
 	end
 
 
