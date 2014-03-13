@@ -1,0 +1,9 @@
+---
+amqp:
+  broker_uri: amqp://user:pass@amqp.local:5672/%2Fasync%2Fjobs
+  exchange: events
+
+logging:
+  __default__: debug STDERR (color)
+
+
