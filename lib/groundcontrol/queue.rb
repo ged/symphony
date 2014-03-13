@@ -225,13 +225,13 @@ class GroundControl::Queue
 			channel = self.class.reset_amqp_channel
 
 			queue = channel.queue( self.name, auto_delete: true )
+			return queue
+		ensure
 			self.routing_keys.each do |key|
 				self.log.info "  binding queue %s to the %s exchange with topic key: %s" %
 					[ self.name, exchange.name, key ]
 				queue.bind( exchange, routing_key: key )
 			end
-
-			return queue
 		end
 	end
 
