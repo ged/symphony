@@ -17,13 +17,14 @@ require 'groundcontrol/signal_handling'
 class GroundControl::Task
 	extend Loggability,
 	       Pluggability,
-		   Sysexits
+	       Sysexits,
+	       GroundControl::MethodUtilities
 
 	include GroundControl::SignalHandling
 
 
 	# Signal to reset to defaults for the child
-	SIGNALS = %i[ QUIT INT TERM HUP USR1 USR2 WINCH ]
+	SIGNALS = %i[ INT TERM HUP CHLD ]
 
 	# Valid work model types
 	WORK_MODELS = %i[ longlived oneshot ]
@@ -56,6 +57,8 @@ class GroundControl::Task
 		subclass.instance_variable_set( :@routing_keys, Set.new )
 		subclass.instance_variable_set( :@acknowledge, true )
 		subclass.instance_variable_set( :@work_model, :longlived )
+		subclass.instance_variable_set( :@prefetch, 10 )
+		subclass.instance_variable_set( :@queue_name, subclass.default_queue_name )
 	end
 
 
@@ -66,7 +69,8 @@ class GroundControl::Task
 				self.queue_name,
 				self.acknowledge,
 				self.consumer_tag,
-				self.routing_keys
+				self.routing_keys,
+				self.prefetch
 			]
 			@queue = GroundControl::Queue.new( *queue_args )
 		end
@@ -74,8 +78,8 @@ class GroundControl::Task
 	end
 
 
-	### Return a normalized name for this task's queue.
-	def self::queue_name
+	### Return an queue name derived from the name of the task class.
+	def self::default_queue_name
 		name = self.name || "anonymous task %d" % [ self.object_id ]
 		return name.gsub( /\W+/, '.' ).downcase
 	end
@@ -95,6 +99,16 @@ class GroundControl::Task
 	# :section: Declarative Methods
 	# These methods are used to configure how the task interacts with its queue and
 	# how it runs.
+
+
+	### Get/set the name of the queue to consume.
+	def self::queue_name( new_name=nil )
+		if new_name
+			@queue_name = new_name
+		end
+
+		return @queue_name
+	end
 
 
 	### Set up one or more topic key patterns to use when binding the Task's queue
@@ -150,6 +164,15 @@ class GroundControl::Task
 	end
 
 
+	### Set the maximum number of messages to prefetch. Ignored if the work_model is
+	### :oneshot.
+	def self::prefetch( count=nil )
+		if count
+			@prefetch = count
+		end
+		return @prefetch
+	end
+
 
 	#
 	# Instance Methods
@@ -157,8 +180,9 @@ class GroundControl::Task
 
 	### Create a worker that will listen on the specified +queue+ for a job.
 	def initialize( queue )
-		@queue = queue
+		@queue          = queue
 		@signal_handler = nil
+		@shutting_down  = false
 	end
 
 
@@ -168,6 +192,12 @@ class GroundControl::Task
 
 	# The queue that the task consumes messages from
 	attr_reader :queue
+
+	# The signal handler thread
+	attr_reader :signal_handler
+
+	# Is the task in the process of shutting down?
+	attr_predicate_accessor :shutting_down
 
 
 	### Set up the task and start handling messages.
@@ -273,12 +303,39 @@ class GroundControl::Task
 	end
 
 
+	### Handle a child process exiting.
+	def on_child_exit
+		self.log.info "Child exited."
+		Process.waitpid( 0, Process::WNOHANG )
+	end
+
+
 	### Handle a termination or interrupt signal.
 	def on_terminate
 		self.log.debug "Signalled to shut down."
-		self.queue.close
+
+		if self.shutting_down?
+			self.stop_immediately
+		else
+			self.stop_gracefully
+		end
 	end
 	alias_method :on_interrupt, :on_terminate
+
+
+	### Stop the task immediately, e.g., when sent a second TERM signal.
+	def stop_immediately
+		self.log.warn "Already in shutdown -- halting immediately."
+		self.queue.halt
+	end
+
+
+	### Set the task to stop after what it's doing is completed.
+	def stop_gracefully
+		self.log.warn "Attempting to shut down gracefully."
+		self.shutting_down = true
+		self.queue.shutdown
+	end
 
 
 end # class GroundControl::Task
