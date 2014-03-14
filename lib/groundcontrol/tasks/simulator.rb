@@ -3,10 +3,11 @@
 require 'pathname'
 require 'tmpdir'
 require 'groundcontrol/task' unless defined?( GroundControl::Task )
-
+require 'groundcontrol/metrics'
 
 # A spike to test out various task execution outcomes.
 class Simulator < GroundControl::Task
+	prepend GroundControl::Metrics
 
 	# Simulate processing all events
 	subscribe_to '#'

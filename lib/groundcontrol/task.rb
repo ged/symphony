@@ -6,6 +6,7 @@ require 'sysexits'
 require 'pluggability'
 require 'loggability'
 
+require 'msgpack'
 require 'yajl'
 require 'yaml'
 
@@ -315,6 +316,8 @@ class GroundControl::Task
 		self.log.debug "Got a %0.2fK %s payload" %
 			[ payload.bytesize / 1024.0, metadata[:content_type] ]
 		work_payload = case metadata[:content_type]
+			when 'application/x-msgpack'
+				MessagePack.unpack( payload )
 			when 'application/json', 'text/javascript'
 				Yajl::Parser.parse( payload )
 			when 'application/x-yaml', 'text/x-yaml'

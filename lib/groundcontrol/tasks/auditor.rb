@@ -4,10 +4,12 @@ require 'pp'
 require 'pathname'
 require 'tmpdir'
 require 'groundcontrol/task' unless defined?( GroundControl::Task )
+require 'groundcontrol/metrics'
 
 
 # A spike to log events
 class Auditor < GroundControl::Task
+	prepend GroundControl::Metrics
 
 	# Audit all events
 	subscribe_to '#'
