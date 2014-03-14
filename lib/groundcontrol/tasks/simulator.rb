@@ -15,6 +15,9 @@ class Simulator < GroundControl::Task
 	# Fetch 100 events at a time
 	prefetch 100
 
+	# Only allow 2 seconds for work to complete before rejecting or retrying.
+	timeout 2.0, action: :retry
+
 
 	### Create a new Simulate task.
 	def initialize( queue )
@@ -42,19 +45,22 @@ class Simulator < GroundControl::Task
 		end
 
 		val = Random.rand
-		case
-		when val < 0.33
-			$stderr.puts "Simulating an error in the task (reject)."
-			raise "OOOOOPS! %p" % [ payload['key'] ]
-		when val < 0.66
-			$stderr.puts "Simulating a soft failure in the task (reject+requeue)."
-			return false
-		else
-			$stderr.puts "Simulating a successful task run (accept)"
-			@log.puts( payload['key'] )
-			@log.flush
-			return true
-		end
+		# case
+		# when val < 0.33
+		# 	$stderr.puts "Simulating an error in the task (reject)."
+		# 	raise "OOOOOPS! %p" % [ payload['key'] ]
+		# when val < 0.66
+		# 	$stderr.puts "Simulating a soft failure in the task (reject+requeue)."
+		# 	return false
+		# when val < 0.88
+			$stderr.puts "Simulating a timeout case"
+			sleep( self.class.timeout + 1 )
+		# else
+		# 	$stderr.puts "Simulating a successful task run (accept)"
+		# 	@log.puts( payload['key'] )
+		# 	@log.flush
+		# 	return true
+		# end
 	end
 
 
