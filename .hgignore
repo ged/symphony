@@ -12,3 +12,4 @@ pkg/
 ^coverage/
 
 \.gemspec$
+.log$
