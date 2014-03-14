@@ -60,6 +60,7 @@ class GroundControl::Task
 		subclass.instance_variable_set( :@work_model, :longlived )
 		subclass.instance_variable_set( :@prefetch, 10 )
 		subclass.instance_variable_set( :@queue_name, subclass.default_queue_name )
+		subclass.instance_variable_set( :@timeout_action, :reject )
 	end
 
 
@@ -138,13 +139,24 @@ class GroundControl::Task
 
 	### Get/set the maximum number of seconds the job should work on a single
 	### message before giving up.
-	def self::timeout( seconds=nil )
+	def self::timeout( seconds=nil, options={} )
 		unless seconds.nil?
 			self.log.info "Setting the task timeout to %0.2fs." % [ seconds.to_f ]
 			@timeout = seconds.to_f
+			self.timeout_action( options[:action] )
 		end
 
 		return @timeout
+	end
+
+
+	### Set the action taken when work times out.
+	def self::timeout_action( new_value=nil )
+		if new_value
+			@timeout_action = new_value.to_sym
+		end
+
+		return @timeout_action
 	end
 
 
@@ -266,7 +278,12 @@ class GroundControl::Task
 
 		return self.queue.wait_for_message( oneshot ) do |payload, metadata|
 			work_payload = self.preprocess_payload( payload, metadata )
-			self.work( work_payload, metadata )
+
+			if self.class.timeout
+				self.work_with_timeout( work_payload, metadata )
+			else
+				self.work( work_payload, metadata )
+			end
 		end
 	end
 
@@ -344,6 +361,19 @@ class GroundControl::Task
 	def work( payload, metadata )
 		raise NotImplementedError,
 			"%p doesn't implement required method #work" % [ self.class ]
+	end
+
+
+	### Wrap a timeout around the call to work, and handle timeouts according to
+	### the configured timeout_action.
+	def work_with_timeout( payload, metadata )
+		Timeout.timeout( self.class.timeout ) do
+			return self.work( payload, metadata )
+		end
+	rescue Timeout::Error
+		self.log.error "Timed out while performing work"
+		raise if self.class.timeout_action == :reject
+		return false
 	end
 
 
