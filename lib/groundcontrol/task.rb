@@ -24,7 +24,7 @@ class GroundControl::Task
 
 
 	# Signal to reset to defaults for the child
-	SIGNALS = %i[ INT TERM HUP CHLD ]
+	SIGNALS = %i[ INT TERM HUP CHLD WINCH ]
 
 	# Valid work model types
 	WORK_MODELS = %i[ longlived oneshot ]
@@ -183,6 +183,7 @@ class GroundControl::Task
 		@queue          = queue
 		@signal_handler = nil
 		@shutting_down  = false
+		@restarting     = false
 	end
 
 
@@ -199,17 +200,20 @@ class GroundControl::Task
 	# Is the task in the process of shutting down?
 	attr_predicate_accessor :shutting_down
 
+	# Is the task in the process of restarting?
+	attr_predicate_accessor :restarting
+
 
 	### Set up the task and start handling messages.
 	def start
-		self.set_up_signal_handling
-		self.set_signal_traps( *SIGNALS )
-		self.start_signal_handler
+		rval = nil
 
-		rval = self.start_handling_messages
-
-		self.stop_signal_handler
-		self.reset_signal_traps( *SIGNALS )
+		begin
+			self.restarting = false
+			rval = self.with_signal_handler( *SIGNALS ) do
+				self.start_handling_messages
+			end
+		end while self.restarting?
 
 		return rval ? 0 : 1
 
@@ -221,9 +225,44 @@ class GroundControl::Task
 	end
 
 
+	### Restart the task after reloading the config.
+	def restart
+		self.restarting = true
+		self.log.warn "Restarting..."
+
+		if GroundControl.config.reload
+			self.log.info "  config reloaded"
+		else
+			self.log.info "  no config changes"
+		end
+
+		self.log.info "  resetting queue"
+		GroundControl::Queue.reset
+		self.queue.shutdown
+	end
+
+
+	### Stop the task immediately, e.g., when sent a second TERM signal.
+	def stop_immediately
+		self.log.warn "Already in shutdown -- halting immediately."
+		self.shutting_down = true
+		self.ignore_signals( *SIGNALS )
+		self.queue.halt
+	end
+
+
+	### Set the task to stop after what it's doing is completed.
+	def stop_gracefully
+		self.log.warn "Attempting to shut down gracefully."
+		self.shutting_down = true
+		self.queue.shutdown
+	end
+
+
 	### Start consuming messages from the queue, calling #work for each one.
 	def start_handling_messages
 		oneshot = self.class.work_model == :oneshot
+
 		return self.queue.wait_for_message( oneshot ) do |payload, metadata|
 			work_payload = self.preprocess_payload( payload, metadata )
 			self.work( work_payload, metadata )
@@ -262,6 +301,8 @@ class GroundControl::Task
 			self.on_hangup
 		when :CHLD
 			self.on_child_exit
+		when :WINCH
+			self.on_window_size_change
 		else
 			self.log.warn "Unhandled signal %s" % [ sig ]
 		end
@@ -310,6 +351,19 @@ class GroundControl::Task
 	end
 
 
+	### Handle a window size change event. No-op by default.
+	def on_window_size_change
+		self.log.info "Window size changed."
+	end
+
+
+	### Handle a hangup signal by re-reading the config and restarting.
+	def on_hangup
+		self.log.info "Hangup signal."
+		self.restart
+	end
+
+
 	### Handle a termination or interrupt signal.
 	def on_terminate
 		self.log.debug "Signalled to shut down."
@@ -321,21 +375,6 @@ class GroundControl::Task
 		end
 	end
 	alias_method :on_interrupt, :on_terminate
-
-
-	### Stop the task immediately, e.g., when sent a second TERM signal.
-	def stop_immediately
-		self.log.warn "Already in shutdown -- halting immediately."
-		self.queue.halt
-	end
-
-
-	### Set the task to stop after what it's doing is completed.
-	def stop_gracefully
-		self.log.warn "Attempting to shut down gracefully."
-		self.shutting_down = true
-		self.queue.shutdown
-	end
 
 
 end # class GroundControl::Task

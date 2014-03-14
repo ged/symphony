@@ -9,6 +9,20 @@ require 'groundcontrol'
 module GroundControl::SignalHandling
 
 
+	### Wrap a block in signal-handling.
+	def with_signal_handler( *signals )
+		self.set_up_signal_handling
+		self.set_signal_traps( *signals )
+		self.start_signal_handler
+
+		return yield
+
+	ensure
+		self.stop_signal_handler
+		self.reset_signal_traps( *signals )
+	end
+
+
 	### Set up data structures for signal handling.
 	def set_up_signal_handling
 		# Self-pipe for deferred signal-handling (ala djb:

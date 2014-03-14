@@ -178,12 +178,15 @@ class GroundControl::Queue
 	### associated metadata when one is received.
 	def wait_for_message( only_one=false, &work_callback )
 		raise LocalJumpError, "no work_callback given" unless work_callback
+		session = self.class.amqp_session
 
 		self.shutting_down = only_one
 		amqp_queue = self.create_amqp_queue( only_one ? 1 : self.prefetch )
 		@consumer = self.create_consumer( amqp_queue, work_callback )
 
 		amqp_queue.subscribe_with( @consumer, block: true )
+		amqp_queue.channel.close
+		session.close
 	end
 
 
@@ -225,13 +228,13 @@ class GroundControl::Queue
 			channel = self.class.reset_amqp_channel
 
 			queue = channel.queue( self.name, auto_delete: true )
-			return queue
-		ensure
 			self.routing_keys.each do |key|
 				self.log.info "  binding queue %s to the %s exchange with topic key: %s" %
 					[ self.name, exchange.name, key ]
 				queue.bind( exchange, routing_key: key )
 			end
+
+			return queue
 		end
 	end
 
