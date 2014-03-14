@@ -31,12 +31,16 @@ hoespec = Hoe.spec 'groundcontrol' do |spec|
 	spec.dependency 'bunny', '~> 1.1'
 	spec.dependency 'sysexits', '~> 1.1'
 	spec.dependency 'yajl-ruby', '~> 1.2'
+	spec.dependency 'msgpack', '~> 0.5'
+	spec.dependency 'metriks', '~> 0.9'
+	spec.dependency 'rusage', '~> 0.2'
 
 	spec.dependency 'rspec', '~> 3.0', :developer
 	spec.dependency 'net-ssh', '~> 2.8', :developer
 	spec.dependency 'net-sftp', '~> 2.1', :developer
+	spec.dependency 'simplecov', '~> 0.8', :developer
 
-	spec.require_ruby_version( '>=1.9.3' )
+	spec.require_ruby_version( '>=2.0.0' )
 	spec.hg_sign_tags = true if spec.respond_to?( :hg_sign_tags= )
 	spec.rdoc_locations << "havnor:/usr/local/www/public/#{remote_rdoc_dir}"
 end

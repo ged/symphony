@@ -5,8 +5,12 @@ sysexits -v1.1.0
 loggability -v0.10.0
 configurability -v2.1.2
 pluggability -v0.4.0
+simplecov -v0.8.2
 bunny -v1.1.3
 net-ssh -v2.8.0
 net-sftp -v2.1.2
 yajl-ruby -v1.2.0
+msgpack -v0.5.8
+metriks -v0.9.9.6
+rusage -v0.2.0
 rspec -v3.0.0.beta2
