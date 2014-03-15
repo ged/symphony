@@ -15,7 +15,7 @@ class FailureLogger < GroundControl::Task
 	subscribe_to '#'
 
 	# Connect to a specific queue
-	queue_name '_failedevents'
+	queue_name '_failures'
 
 
 	### Set up the output device. By default it's STDERR, but it can be anything

@@ -11,11 +11,9 @@ require 'groundcontrol/metrics'
 class Auditor < GroundControl::Task
 	prepend GroundControl::Metrics
 
-	# Audit all events
 	subscribe_to '#'
-
-	#acknowledge false
 	prefetch 1000
+	queue_name '_audit'
 
 
 	### Create a new Auditor task.
