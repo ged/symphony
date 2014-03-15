@@ -17,7 +17,6 @@ lib/groundcontrol/signal_handling.rb
 lib/groundcontrol/task.rb
 lib/groundcontrol/tasks/auditor.rb
 lib/groundcontrol/tasks/failure_logger.rb
-lib/groundcontrol/tasks/messaging.rb
 lib/groundcontrol/tasks/pinger.rb
 lib/groundcontrol/tasks/simulator.rb
 lib/groundcontrol/tasks/ssh.rb

@@ -22,6 +22,7 @@ hoespec = Hoe.spec 'groundcontrol' do |spec|
 	spec.history_file = 'History.rdoc'
 	spec.extra_rdoc_files = FileList[ '*.rdoc' ]
 	spec.spec_extras[:rdoc_options] = ['-f', 'fivefish', '-t', 'GroundControl']
+	spec.spec_extras[:required_rubygems_version] = '>= 2.0.3'
 	spec.license 'BSD'
 
 	spec.developer 'Michael Granger', 'ged@FaerieMUD.org'
@@ -42,7 +43,6 @@ hoespec = Hoe.spec 'groundcontrol' do |spec|
 
 	spec.require_ruby_version( '>=2.0.0' )
 	spec.hg_sign_tags = true if spec.respond_to?( :hg_sign_tags= )
-	spec.rdoc_locations << "havnor:/usr/local/www/public/#{remote_rdoc_dir}"
 end
 
 ENV['VERSION'] ||= hoespec.spec.version.to_s
