@@ -17,9 +17,9 @@ class GroundControl::Queue
 
 	# Configurability defaults
 	CONFIG_DEFAULTS = {
-		broker_uri: 'amqp://gcworker@localhost:5672/%2F',
-		exchange:   'groundcontrol',
-		heartbeat:  'server',
+		broker_uri:  nil,
+		exchange:    'groundcontrol',
+		heartbeat:   'server',
 	}
 
 
@@ -49,18 +49,7 @@ class GroundControl::Queue
 	def self::configure( config=nil )
 		config = self.defaults.merge( config || {} )
 
-		if (( uri = config.delete(:url) ))
-			self.log.debug "Using the url+vhost style config"
-			uri += '/' unless uri.end_with?( '/' )
-			uri += config[:vhost].gsub('/', '%2F') if config[:vhost]
-			self.broker_uri = uri.to_s
-		elsif (( uri = config.delete(:broker_uri) ))
-			self.log.debug "Using the broker_uri-style config"
-			self.broker_uri = uri
-		else
-			self.log.warn "No broker config; looked for 'url' and 'broker_uri'"
-		end
-
+		self.broker_uri   = config.delete( :broker_uri )
 		self.exchange     = config.delete( :exchange )
 		self.session_opts = config
 	end
@@ -88,7 +77,13 @@ class GroundControl::Queue
 	def self::amqp_session
 		unless @session
 			options = self.amqp_session_options
-			@session = Bunny.new( self.broker_uri, options )
+			if self.broker_uri
+				self.log.info "Using the broker URI-style config"
+				@session = Bunny.new( self.broker_uri, options )
+			else
+				self.log.info "Using the options hash-style config"
+				@session = Bunny.new( options )
+			end
 		end
 		return @session
 	end
