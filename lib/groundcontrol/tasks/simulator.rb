@@ -19,16 +19,6 @@ class Simulator < GroundControl::Task
 	timeout 2.0, action: :retry
 
 
-	### Create a new Simulate task.
-	def initialize( queue )
-		super
-		@logdir = Pathname( Dir.tmpdir )
-		@logfile = @logdir + 'events.log'
-		$stderr.puts "Logfile is: %s" % [ @logfile ]
-		@log = @logfile.open( File::CREAT|File::APPEND|File::WRONLY, encoding: 'utf-8' )
-	end
-
-
 	######
 	public
 	######
@@ -45,22 +35,21 @@ class Simulator < GroundControl::Task
 		end
 
 		val = Random.rand
-		# case
-		# when val < 0.33
-		# 	$stderr.puts "Simulating an error in the task (reject)."
-		# 	raise "OOOOOPS! %p" % [ payload['key'] ]
-		# when val < 0.66
-		# 	$stderr.puts "Simulating a soft failure in the task (reject+requeue)."
-		# 	return false
-		# when val < 0.88
+		case
+		when val < 0.33
+			$stderr.puts "Simulating an error in the task (reject)."
+			raise "OOOOOPS!"
+		when val < 0.66
+			$stderr.puts "Simulating a soft failure in the task (reject+requeue)."
+			return false
+		when val < 0.88
 			$stderr.puts "Simulating a timeout case"
 			sleep( self.class.timeout + 1 )
-		# else
-		# 	$stderr.puts "Simulating a successful task run (accept)"
-		# 	@log.puts( payload['key'] )
-		# 	@log.flush
-		# 	return true
-		# end
+		else
+			$stderr.puts "Simulating a successful task run (accept)"
+			puts( payload.inspect )
+			return true
+		end
 	end
 
 
