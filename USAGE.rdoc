@@ -128,10 +128,10 @@ workers will receive roughly equal numbers of matching events.
 
 A task will automatically create an auto-delete queue for itself with a
 sane (but configurable) name, along with subscription bindings, ONLY if
-the queue doesn't previously exist.  The auto-delete flag ensures that
+the queue didn't previously exist.  The auto-delete flag ensures that
 when the last worker disconnects, the queue is automatically removed
-from the AMQP broker, setting everything back to the state before a
-GroundControl worker connected.
+from the AMQP broker, setting everything back to the state it was before
+a GroundControl worker ever connected.
 
 Along the same logic as the initial exchange creation, if a matching
 queue exists already for a task name (an automatically generated or
@@ -152,7 +152,7 @@ we'll talk more on that later.
 By default, a Task is configured to tell AMQP when it has completed its
 job.  It does this by returning +true+ from the #work method.  When AMQP
 sees the job was completed, the message is considered "delivered", and
-it's lifetime is at an end.  If instead, the task returns an explicit
+its lifetime is at an end.  If instead, the task returns an explicit
 +false+, the message is retried, potentially on a different task worker.
 
 If something within the task raises an exception, the default behavior
@@ -316,13 +316,13 @@ Bunny documentation[http://rubybunny.info/articles/exchanges.html] for
 options.
 
 
-= How Do I... ?
+= How Do I...
 
 == Avoid Infinite Retry and/or Failure Loops?
 
 When publishing, include a message expiration.  (Again, this has a
 different goal than the 'timeout' option for the GroundControl::Task
-class, which can potentially dislodge a potentially stuck worker.)
+class, which can dislodge a potentially stuck worker.)
 
 With an expiration, a task that retries will eventually meet it's
 maximum lifetime, and AMQP will stop delivering it to consumers.  If
@@ -336,7 +336,7 @@ Because messaging is designed to be asynchronous, you won't receive
 instantaneous results when pushing an event into the void.  RabbitMQ has
 the concept of a 'dead letter queue', which receives events that have
 failed due to expiration or rejection.  They contain the original route
-information, and the original payload.
+information and the original payload.
 
 RabbitMQ also permits setting 'policies', which apply default settings
 to any created queue under a virtual host.  We've been creating an
