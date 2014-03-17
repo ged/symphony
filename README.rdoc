@@ -6,28 +6,35 @@ docs:: http://deveiate.org/code/groundcontrol
 
 == Description
 
-GroundControl is a subscription-based asynchronous job system. It allows you to define jobs that watch for lightweight events from a distributed-messaging system like an AMQP broker or a ZeroMQ socket, and do work based on their payload.
+GroundControl is a subscription-based asynchronous job system. It
+allows you to define jobs that watch for lightweight events from a
+distributed-messaging AMQP broker, and do work based on their payload.
 
-It's composed of four major parts:
+It includes several executables under bin/:
 
-Queue[rdoc-ref:GroundControl::Queue]::
-Task[rdoc-ref:GroundControl::Task]::
-Worker[rdoc-ref:GroundControl::Worker]::
-Daemon []
-
-It also includes several executables under bin/:
-
-gcworkerd::
-  A daemon which manages startup and shutdown of one or more Workers
-  running Jobs from a Queue.
-
-A few more executables are planned:
-
-gcscheduled::
-  A daemon that provides scheduled injection of jobs.
 groundcontrol::
-  A command shell which can manage, inject, schedule, and monitor job
-  execution across multiple Queues.
+  A daemon which manages startup and shutdown of one or more Workers
+  running Tasks as they are published from a queue.
+
+groundcontrol-task::
+  A wrapper that runs a single task, useful for testing, or if you don't
+  require the process management that the groundcontrol daemon provides.
+
+
+== Synopsis
+
+	class WorkerTask < GroundControl::Task
+		# Process all events
+		subscribe_to '#'
+
+		def work( payload, metadata )
+			puts "I got a payload! %p" % [ payload ]
+			return true
+		end
+	end
+
+
+For a more detailed description of usage, please refer to the USAGE document.
 
 
 == Installation

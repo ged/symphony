@@ -28,12 +28,14 @@ module GroundControl::Routing
 
 		### Register an event pattern and a block to execute when an event
 		### matching that pattern is received.
-		def on( pattern, &block )
-			methodobj = self.make_handler_method( pattern, &block )
-			self.routing_keys << pattern
+		def on( *route_patterns, &block )
+			route_patterns.each do |pattern|
+				methodobj = self.make_handler_method( pattern, &block )
+				self.routing_keys << pattern
 
-			pattern_re = self.make_routing_pattern( pattern )
-			self.routes[ pattern_re ] << methodobj
+				pattern_re = self.make_routing_pattern( pattern )
+				self.routes[ pattern_re ] << methodobj
+			end
 		end
 
 
