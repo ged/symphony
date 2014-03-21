@@ -5,15 +5,6 @@ require 'timeout'
 require 'groundcontrol/task' unless defined?( GroundControl::Task )
 
 
-session = Bunny.new( 'amqp://localhost:5672', vhost: '/acme/jobs' )
-session.start
-channel = session.create_channel
-exchange = channel.topic( 'events' )
-
-payload = Yajl.dump({ hostname: 'www.acme.com', port: 'www' })
-exchange.publish( payload, routing_key: 'monitor.availability.port' )
-
-
 ### A proof-of-concept task to determine ssh availability of a host.
 class GroundControl::Task::Pinger < GroundControl::Task
 

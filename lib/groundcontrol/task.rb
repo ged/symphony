@@ -59,7 +59,6 @@ class GroundControl::Task
 		subclass.instance_variable_set( :@acknowledge, true )
 		subclass.instance_variable_set( :@work_model, :longlived )
 		subclass.instance_variable_set( :@prefetch, 10 )
-		subclass.instance_variable_set( :@queue_name, subclass.default_queue_name )
 		subclass.instance_variable_set( :@timeout_action, :reject )
 	end
 
@@ -67,14 +66,7 @@ class GroundControl::Task
 	### Fetch the GroundControl::Queue for this task, creating it if necessary.
 	def self::queue
 		unless @queue
-			queue_args = [
-				self.queue_name,
-				self.acknowledge,
-				self.consumer_tag,
-				self.routing_keys,
-				self.prefetch
-			]
-			@queue = GroundControl::Queue.new( *queue_args )
+			@queue = GroundControl::Queue.for_task( self )
 		end
 		return @queue
 	end
@@ -109,6 +101,7 @@ class GroundControl::Task
 			@queue_name = new_name
 		end
 
+		@queue_name ||= self.default_queue_name
 		return @queue_name
 	end
 
