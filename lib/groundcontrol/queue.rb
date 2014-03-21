@@ -22,6 +22,9 @@ class GroundControl::Queue
 		heartbeat:   'server',
 	}
 
+	# The default number of messages to prefetch
+	DEFAULT_PREFETCH = 10
+
 
 	# Loggability API -- set up groundcontrol's logger
 	log_to :groundcontrol
@@ -129,6 +132,20 @@ class GroundControl::Queue
 	end
 
 
+	### Return a queue configured for the specified +task_class+.
+	def self::for_task( task_class )
+		args = [
+			task_class.queue_name,
+			task_class.acknowledge,
+			task_class.consumer_tag,
+			task_class.routing_keys,
+			task_class.prefetch
+		]
+		return new( *args )
+	end
+
+
+
 	### Create a new Queue with the specified configuration.
 	def initialize( name, acknowledge, consumer_tag, routing_keys, prefetch )
 		@name          = name
@@ -162,7 +179,7 @@ class GroundControl::Queue
 	attr_reader :prefetch
 
 	# The Bunny::Consumer that is dispatching messages for the queue.
-	attr_reader :consumer
+	attr_accessor :consumer
 
 	##
 	# The flag for shutting the queue down.
@@ -177,50 +194,52 @@ class GroundControl::Queue
 
 		self.shutting_down = only_one
 		amqp_queue = self.create_amqp_queue( only_one ? 1 : self.prefetch )
-		@consumer = self.create_consumer( amqp_queue, work_callback )
+		self.consumer = self.create_consumer( amqp_queue, work_callback )
 
-		amqp_queue.subscribe_with( @consumer, block: true )
+		amqp_queue.subscribe_with( self.consumer, block: true )
 		amqp_queue.channel.close
 		session.close
 	end
 
 
 	### Create the Bunny::Consumer that will dispatch messages from the broker.
-	def create_consumer( amqp_queue, work_callback )
+	def create_consumer( amqp_queue, &work_callback )
 		ackmode = self.acknowledge
 		tag     = self.consumer_tag
 
-		consumer = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode )
+		# Last argument is *no_ack*, so need to invert the logic
+		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode )
 
-		consumer.on_delivery do |delivery_info, properties, payload|
-			rval = self.handle_message( delivery_info, properties, payload, work_callback )
+		cons.on_delivery do |delivery_info, properties, payload|
+			rval = self.handle_message( delivery_info, properties, payload, &work_callback )
 			self.log.debug "Done with message %s. Session is %s" %
 					[ delivery_info.delivery_tag, self.class.amqp_session.closed? ? "closed" : "open" ]
-			consumer.cancel if self.shutting_down?
+			cons.cancel if self.shutting_down?
 		end
 
-		consumer.on_cancellation do 
+		cons.on_cancellation do
 			self.log.warn "Consumer cancelled."
 			self.shutdown
 		end
 
+		return cons
 	end
 
 
 	### Create the AMQP queue from the task class and bind it to the configured exchange.
-	def create_amqp_queue( prefetch_count=10 )
+	def create_amqp_queue( prefetch_count=DEFAULT_PREFETCH )
 		exchange = self.class.amqp_exchange
 		channel = self.class.amqp_channel
 
-		channel.prefetch( prefetch_count )
-
 		begin
 			queue = channel.queue( self.name, passive: true )
+			channel.prefetch( prefetch_count )
 			self.log.info "Using pre-existing queue: %s" % [ self.name ]
 			return queue
 		rescue Bunny::NotFound => err
 			self.log.info "%s; using an auto-delete queue instead." % [ err.message ]
 			channel = self.class.reset_amqp_channel
+			channel.prefetch( prefetch_count )
 
 			queue = channel.queue( self.name, auto_delete: true )
 			self.routing_keys.each do |key|
@@ -235,7 +254,7 @@ class GroundControl::Queue
 
 
 	### Handle each subscribed message.
-	def handle_message( delivery_info, properties, payload, work_callback )
+	def handle_message( delivery_info, properties, payload, &work_callback )
 		metadata = {
 			delivery_info: delivery_info,
 			properties: properties,

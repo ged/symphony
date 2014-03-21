@@ -14,14 +14,44 @@ describe GroundControl::Task do
 		GroundControl::Queue.reset
 	end
 
+	after( :each ) do
+		# reset signal handlers
+		GroundControl::Task::SIGNALS.each do |sig|
+			Signal.trap( sig, :DFL )
+		end
+	end
 
-	it "closes the AMQP session when it receives a TERM signal" do
+
+	it "cancels the AMQP consumer when it receives a TERM signal" do
 		amqp_session = double( "amqp session" )
+		consumer = double( "bunny consumer" )
+
 		allow( Bunny ).to receive( :new ).and_return( amqp_session )
 
-		task = described_class.new( described_class.queue )
+		queue = described_class.queue
+		queue.consumer = consumer
+		task = described_class.new( queue )
 
-		expect( amqp_session ).to receive( :close )
+		expect( queue.consumer ).to receive( :cancel )
+
+		task.handle_signal( :TERM )
+	end
+
+
+	it "closes the AMQP session when it receives a second TERM signal" do
+		amqp_session = double( "amqp session" )
+		channel = double( "AMQP channel" )
+		consumer = double( "bunny consumer", channel: channel )
+
+		allow( Bunny ).to receive( :new ).and_return( amqp_session )
+
+		queue = described_class.queue
+		queue.consumer = consumer
+		task = described_class.new( queue )
+		task.shutting_down = true
+
+		expect( queue.consumer.channel ).to receive( :close )
+
 		task.handle_signal( :TERM )
 	end
 
