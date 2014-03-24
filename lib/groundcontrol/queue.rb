@@ -194,8 +194,9 @@ class GroundControl::Queue
 
 		self.shutting_down = only_one
 		amqp_queue = self.create_amqp_queue( only_one ? 1 : self.prefetch )
-		self.consumer = self.create_consumer( amqp_queue, work_callback )
+		self.consumer = self.create_consumer( amqp_queue, &work_callback )
 
+		self.log.debug "Subscribing to queue with consumer: %p" % [ self.consumer ]
 		amqp_queue.subscribe_with( self.consumer, block: true )
 		amqp_queue.channel.close
 		session.close
@@ -208,6 +209,7 @@ class GroundControl::Queue
 		tag     = self.consumer_tag
 
 		# Last argument is *no_ack*, so need to invert the logic
+		self.log.debug "Creating Bunny::Consumer for %p with tag: %s" % [ amqp_queue, tag ]
 		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode )
 
 		cons.on_delivery do |delivery_info, properties, payload|

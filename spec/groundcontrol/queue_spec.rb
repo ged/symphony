@@ -7,11 +7,8 @@ require 'groundcontrol/queue'
 describe GroundControl::Queue do
 
 
-	before( :all ) do
-		described_class.configure( broker_uri: 'amqp://example.com/%2Ftesty' )
-	end
-
 	before( :each ) do
+		described_class.configure( broker_uri: 'amqp://example.com/%2Ftesty' )
 		described_class.reset
 	end
 
@@ -24,6 +21,28 @@ describe GroundControl::Queue do
 			heartbeat: :server,
 			logger:    Loggability[ GroundControl ],
 		})
+	end
+
+
+	it "can use the Bunny-style configuration Hash" do
+		described_class.configure( host: 'spimethorpe.com', port: 23456 )
+		expect( described_class.amqp_session_options ).to include({
+			host: 'spimethorpe.com',
+			port: 23456,
+			heartbeat: :server,
+			logger:    Loggability[ GroundControl ],
+		})
+	end
+
+
+	it "assumes Bunny-style configuration Hash if no broker uri is configured" do
+		described_class.configure( host: 'spimethorpe.com', port: 23456 )
+		described_class.broker_uri = nil
+
+		expect( Bunny ).to receive( :new ).
+			with( described_class.amqp_session_options )
+
+		described_class.amqp_session
 	end
 
 
@@ -127,7 +146,35 @@ describe GroundControl::Queue do
 		end
 
 
-		it "creates a consumer with ACKs enabled if it has acknowledgements enabled" do
+		it "subscribes to the message queue with a configured consumer to wait for messages" do
+			amqp_queue = double( "AMQP queue", channel: described_class.amqp_channel )
+			consumer = double( "Bunny consumer" )
+
+			expect( described_class.amqp_channel ).to receive( :queue ).
+				with( testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( described_class.amqp_channel ).to receive( :prefetch ).
+				with( GroundControl::Queue::DEFAULT_PREFETCH )
+
+			expect( Bunny::Consumer ).to receive( :new ).
+				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).
+				and_return( consumer )
+
+			expect( consumer ).to receive( :on_delivery )
+			expect( consumer ).to receive( :on_cancellation )
+
+			expect( amqp_queue ).to receive( :subscribe_with ).with( consumer, block: true )
+			expect( described_class.amqp_channel ).to receive( :close )
+			expect( session ).to receive( :close )
+
+			queue.wait_for_message {}
+		end
+
+
+		it "raises if wait_for_message is called without a block"
+		it "sets up the queue and consumer to only run once if waiting in one-shot mode"
+
+		it "creates a consumer with acknowledgements enabled if it has acknowledgements enabled" do
 			amqp_channel = double( "AMQP channel" )
 			amqp_queue = double( "AMQP queue", channel: amqp_channel )
 			consumer = double( "Bunny consumer" )
@@ -143,7 +190,7 @@ describe GroundControl::Queue do
 		end
 
 
-		it "creates a consumer with ACKs disabled if it has acknowledgements disabled" do
+		it "creates a consumer with acknowledgements disabled if it has acknowledgements disabled" do
 			amqp_channel = double( "AMQP channel" )
 			amqp_queue = double( "AMQP queue", channel: amqp_channel )
 			consumer = double( "Bunny consumer" )
@@ -160,13 +207,20 @@ describe GroundControl::Queue do
 		end
 
 
-		it "yields the payload and metadata to work method"
+		it "it acknowledges the message if acknowledgements are set and the task returns a true value" do
+			channel = double( "amqp channel" )
+			queue.consumer = double( "bunny consumer", channel: channel )
+			delivery_info = double( "delivery info", delivery_tag: 128 )
+
+			expect( channel ).to receive( :acknowledge ).with( delivery_info.delivery_tag )
+
+			queue.handle_message( delivery_info, {content_type: 'text/plain'}, :payload ) do |*|
+				true
+			end
+		end
 
 
-		it "it NACKs the message if acknowledgements are set and the task raises"
-
-
-		it "it NACKs the message if acknowledgements are set and the task returns a false value" do
+		it "it rejects the message if acknowledgements are set and the task returns a false value" do
 			channel = double( "amqp channel" )
 			queue.consumer = double( "bunny consumer", channel: channel )
 			delivery_info = double( "delivery info", delivery_tag: 128 )
@@ -178,6 +232,18 @@ describe GroundControl::Queue do
 			end
 		end
 
+
+		it "it permanently rejects the message if acknowledgements are set and the task raises" do
+			channel = double( "amqp channel" )
+			queue.consumer = double( "bunny consumer", channel: channel )
+			delivery_info = double( "delivery info", delivery_tag: 128 )
+
+			expect( channel ).to receive( :reject ).with( delivery_info.delivery_tag, false )
+
+			queue.handle_message( delivery_info, {content_type: 'text/plain'}, :payload ) do |*|
+				raise "Uh-oh!"
+			end
+		end
 
 
 	end
