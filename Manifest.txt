@@ -4,6 +4,8 @@ History.rdoc
 Manifest.txt
 README.rdoc
 Rakefile
+TODO.md
+USAGE.rdoc
 bin/groundcontrol
 bin/groundcontrol-task
 etc/config.yml.example

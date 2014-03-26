@@ -12,6 +12,7 @@ describe GroundControl::Task do
 
 	before( :each ) do
 		GroundControl::Queue.reset
+		allow( Bunny ).to receive( :new ).and_return( amqp_session )
 	end
 
 	after( :each ) do
@@ -22,12 +23,12 @@ describe GroundControl::Task do
 	end
 
 
+	let( :amqp_session ) { double('amqp_session') }
+	let( :channel ) { double('amqp channel') }
+	let( :consumer ) { double('bunny consumer', channel: channel) }
+
+
 	it "cancels the AMQP consumer when it receives a TERM signal" do
-		amqp_session = double( "amqp session" )
-		consumer = double( "bunny consumer" )
-
-		allow( Bunny ).to receive( :new ).and_return( amqp_session )
-
 		queue = described_class.queue
 		queue.consumer = consumer
 		task = described_class.new( queue )
@@ -39,11 +40,6 @@ describe GroundControl::Task do
 
 
 	it "cancels the AMQP consumer when it receives an INT signal" do
-		amqp_session = double( "amqp session" )
-		consumer = double( "bunny consumer" )
-
-		allow( Bunny ).to receive( :new ).and_return( amqp_session )
-
 		queue = described_class.queue
 		queue.consumer = consumer
 		task = described_class.new( queue )
@@ -55,12 +51,6 @@ describe GroundControl::Task do
 
 
 	it "closes the AMQP session when it receives a second TERM signal" do
-		amqp_session = double( "amqp session" )
-		channel = double( "AMQP channel" )
-		consumer = double( "bunny consumer", channel: channel )
-
-		allow( Bunny ).to receive( :new ).and_return( amqp_session )
-
 		queue = described_class.queue
 		queue.consumer = consumer
 		task = described_class.new( queue )
@@ -78,6 +68,23 @@ describe GroundControl::Task do
 			@task_class = Class.new( described_class ) do
 				def self::name; 'ACME::TestingTask'; end
 			end
+		end
+
+
+		it "raises an exception if run without specifying any subscriptions" do
+			expect { @task_class.run }.to raise_error( ScriptError, /no subscriptions/i )
+		end
+
+
+		it "can set an explicit queue name" do
+			@task_class.queue_name( 'happy.fun.queue' )
+			expect( @task_class.queue_name ).to eq( 'happy.fun.queue' )
+		end
+
+
+		it "can retry on timeout instead of rejecting" do
+			@task_class.timeout_action( :retry )
+			expect( @task_class.timeout_action ).to eq( :retry )
 		end
 
 
@@ -127,10 +134,12 @@ describe GroundControl::Task do
 		end
 
 
-		it "raises an error if a work model is declared " do
-			@task_class.work_model( :longlived )
-			expect( @task_class.work_model ).to eq( :longlived )
+		it "raises an error if an invalid work model is declared " do
+			expect {
+				@task_class.work_model( :lazy )
+			}.to raise_error( /unknown work_model/i )
 		end
+
 
 	end
 
