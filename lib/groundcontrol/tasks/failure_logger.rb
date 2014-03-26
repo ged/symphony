@@ -85,9 +85,9 @@ class FailureLogger < GroundControl::Task
 
 
 	### Return a logging message part based on the specified +deaths+.
-	### 
+	###
 	### deaths - An Array of Hashes derived from the 'x-death' headers of the message
-	### 
+	###
 	def log_deaths( deaths )
 		message = ''
 		deaths.each do |death|

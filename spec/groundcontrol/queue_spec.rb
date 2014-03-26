@@ -107,12 +107,13 @@ describe GroundControl::Queue do
 
 		before( :each ) do
 			allow( Bunny ).to receive( :new ).and_return( session )
-			described_class.amqp[:exchange] = double( "AMQP exchange" )
+			described_class.amqp[:exchange] = double( "AMQP exchange", name: 'the_exchange' )
 			described_class.amqp[:channel] = double( "AMQP channel" )
 		end
 
 
 		it "creates an auto-deleted queue for the task if one doesn't already exist" do
+			testing_task_class.subscribe_to( 'floppy.rabbit.#' )
 			expect( described_class.amqp_channel ).to receive( :queue ).
 				with( queue.name, passive: true ).
 				and_raise( Bunny::NotFound.new("no such queue", described_class.amqp_channel, true) )
@@ -129,6 +130,8 @@ describe GroundControl::Queue do
 			expect( new_channel ).to receive( :queue ).
 				with( queue.name, auto_delete: true ).
 				and_return( amqp_queue )
+			expect( amqp_queue ).to receive( :bind ).
+				with( described_class.amqp_exchange, routing_key: 'floppy.rabbit.#' )
 
 			expect( queue.create_amqp_queue ).to be( amqp_queue )
 		end
@@ -148,7 +151,100 @@ describe GroundControl::Queue do
 
 		it "subscribes to the message queue with a configured consumer to wait for messages" do
 			amqp_queue = double( "AMQP queue", channel: described_class.amqp_channel )
-			consumer = double( "Bunny consumer" )
+			consumer = double( "Bunny consumer", channel: described_class.amqp_channel )
+
+			expect( described_class.amqp_channel ).to receive( :queue ).
+				with( testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( described_class.amqp_channel ).to receive( :prefetch ).
+				with( GroundControl::Queue::DEFAULT_PREFETCH )
+
+			expect( Bunny::Consumer ).to receive( :new ).
+				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).
+				and_return( consumer )
+
+			# Set up an artificial method to call the delivery callback that we can later
+			# call ourselves
+			expect( consumer ).to receive( :on_delivery ) do |&block|
+				allow( consumer ).to receive( :deliver ) do
+					delivery_info = double("delivery info", delivery_tag: 'mirrors!!!!' )
+					properties = {:content_type => 'application/json'}
+					payload = '{"some": "stuff"}'
+					block.call( delivery_info, properties, payload )
+				end
+			end
+			expect( consumer ).to receive( :on_cancellation )
+
+			# When the queue subscription happens, call the hook we set up above to simulate
+			# the delivery of AMQP messages
+			expect( amqp_queue ).to receive( :subscribe_with ) do |*args|
+				expect( args.first ).to be( consumer )
+				expect( args.last ).to eq({ block: true })
+				5.times { consumer.deliver }
+			end
+
+			expect( described_class.amqp_channel ).to receive( :acknowledge ).
+				with( 'mirrors!!!!' ).
+				exactly( 5 ).times
+			expect( described_class.amqp_channel ).to receive( :close )
+			expect( session ).to receive( :closed? ).and_return( false ).exactly( 5 ).times
+			expect( session ).to receive( :close )
+
+			count = 0
+			queue.wait_for_message { count += 1 }
+			expect( count ).to eq( 5 )
+		end
+
+
+		it "raises if wait_for_message is called without a block" do
+			expect { queue.wait_for_message }.to raise_error( LocalJumpError, /no work/i )
+		end
+
+
+		it "sets up the queue and consumer to only run once if waiting in one-shot mode" do
+			amqp_queue = double( "AMQP queue", channel: described_class.amqp_channel )
+			consumer = double( "Bunny consumer", channel: described_class.amqp_channel )
+
+			expect( described_class.amqp_channel ).to receive( :queue ).
+				with( testing_task_class.queue_name, passive: true ).
+				and_return( amqp_queue )
+			expect( described_class.amqp_channel ).to receive( :prefetch ).with( 1 )
+
+			expect( Bunny::Consumer ).to receive( :new ).
+				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).
+				and_return( consumer )
+
+			expect( consumer ).to receive( :on_delivery ) do |&block|
+				allow( consumer ).to receive( :deliver ) do
+					delivery_info = double("delivery info", delivery_tag: 'mirrors!!!!' )
+					properties = {:content_type => 'application/json'}
+					payload = '{"some": "stuff"}'
+					block.call( delivery_info, properties, payload )
+				end
+			end
+			expect( consumer ).to receive( :on_cancellation )
+
+			expect( amqp_queue ).to receive( :subscribe_with ) do |*args|
+				expect( args.first ).to be( consumer )
+				expect( args.last ).to eq({ block: true })
+				consumer.deliver
+			end
+			expect( described_class.amqp_channel ).to receive( :acknowledge ).
+				with( 'mirrors!!!!' ).once
+			expect( described_class.amqp_channel ).to receive( :close )
+			expect( session ).to receive( :closed? ).and_return( false ).once
+			expect( session ).to receive( :close )
+			expect( consumer ).to receive( :cancel )
+
+			count = 0
+			queue.wait_for_message( true ) { count += 1 }
+			expect( count ).to eq( 1 )
+		end
+
+
+		it "shuts down the consumer if the queues it's consuming from is deleted on the server" do
+			amqp_queue = double( "AMQP queue", channel: described_class.amqp_channel )
+			consumer = double( "Bunny consumer", channel: described_class.amqp_channel )
 
 			expect( described_class.amqp_channel ).to receive( :queue ).
 				with( testing_task_class.queue_name, passive: true ).
@@ -161,18 +257,23 @@ describe GroundControl::Queue do
 				and_return( consumer )
 
 			expect( consumer ).to receive( :on_delivery )
-			expect( consumer ).to receive( :on_cancellation )
+			expect( consumer ).to receive( :on_cancellation ) do |&block|
+				allow( consumer ).to receive( :server_cancel ) do
+					block.call
+				end
+			end
 
-			expect( amqp_queue ).to receive( :subscribe_with ).with( consumer, block: true )
+			expect( amqp_queue ).to receive( :subscribe_with ) do |*|
+				consumer.server_cancel
+			end
 			expect( described_class.amqp_channel ).to receive( :close )
 			expect( session ).to receive( :close )
+			expect( consumer ).to receive( :cancel )
 
 			queue.wait_for_message {}
+			expect( queue ).to be_shutting_down()
 		end
 
-
-		it "raises if wait_for_message is called without a block"
-		it "sets up the queue and consumer to only run once if waiting in one-shot mode"
 
 		it "creates a consumer with acknowledgements enabled if it has acknowledgements enabled" do
 			amqp_channel = double( "AMQP channel" )
@@ -217,6 +318,21 @@ describe GroundControl::Queue do
 			queue.handle_message( delivery_info, {content_type: 'text/plain'}, :payload ) do |*|
 				true
 			end
+		end
+
+
+		it "re-raises AMQP errors raised while handling a message" do
+			channel = double( "amqp channel" )
+			queue.consumer = double( "bunny consumer", channel: channel )
+			delivery_info = double( "delivery info", delivery_tag: 128 )
+
+			expect( channel ).to_not receive( :acknowledge )
+
+			expect {
+				queue.handle_message( delivery_info, {content_type: 'text/plain'}, :payload ) do |*|
+					raise Bunny::Exception, 'something bad!'
+				end
+			}.to raise_error( Bunny::Exception, 'something bad!' )
 		end
 
 
