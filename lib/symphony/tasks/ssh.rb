@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
 require 'shellwords'
-require 'groundcontrol/task' unless defined?( GroundControl::Task )
+require 'symphony/task' unless defined?( Symphony::Task )
 
 
 ### A base SSH class for connecting to remote hosts, running commands,
 ### and collecting output.
-class GroundControl::Task::SSH < GroundControl::Task
+class Symphony::Task::SSH < Symphony::Task
 	extend MethodUtilities
 
 	### Create a new SSH task for the given +job+ and +queue+.
@@ -122,5 +122,5 @@ class GroundControl::Task::SSH < GroundControl::Task
 	end
 
 
-end # class GroundControl::Task::SSH
+end # class Symphony::Task::SSH
 

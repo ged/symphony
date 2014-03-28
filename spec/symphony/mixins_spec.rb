@@ -2,16 +2,16 @@
 
 require_relative '../helpers'
 
-require 'groundcontrol/mixins'
+require 'symphony/mixins'
 
 
-describe GroundControl, 'mixins' do
+describe Symphony, 'mixins' do
 
-	describe GroundControl::MethodUtilities, 'used to extend a class' do
+	describe Symphony::MethodUtilities, 'used to extend a class' do
 
 		let!( :extended_class ) do
 			klass = Class.new
-			klass.extend( GroundControl::MethodUtilities )
+			klass.extend( Symphony::MethodUtilities )
 			klass
 		end
 

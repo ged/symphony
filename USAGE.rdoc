@@ -1,7 +1,7 @@
 
 = Initial Setup
 
-GroundControl uses the RabbitMQ[http://www.rabbitmq.com/] server
+Symphony uses the RabbitMQ[http://www.rabbitmq.com/] server
 for speed, redundancy, and high availability.  Installing
 RabbitMQ is outside the scope of this document, please see their
 installation[http://www.rabbitmq.com/download.html] instructions.
@@ -11,7 +11,7 @@ Once installed and running, lets move on!
 == Nomenclature
 
 Here's a quick review on RabbitMQ vocabulary.  It's helpful to have some
-fundamental understanding of AMQP concepts when using GroundControl, as
+fundamental understanding of AMQP concepts when using Symphony, as
 a lot of advanced messaging options are available only via server-side
 configuration.
 
@@ -42,25 +42,25 @@ dead-letter-exchange::
 
 = Starting Out
 
-GroundControl uses
+Symphony uses
 Configurability[https://rubygems.org/gems/configurability] to determine
 connection criteria to the RabbitMQ server, which is stored in a
 YAML[http://www.yaml.org/] file.
 
-An example configuration file for GroundControl looks as such, if you
+An example configuration file for Symphony looks as such, if you
 were connecting to a virtual host called '/test', wanted to log all
 messages to STDERR at a level of 'debug', and had an exchange called
-'groundcontrol' (the default):
+'symphony' (the default):
 
 	amqp:
 		broker_uri: amqp://USERNAME:PASSWORD@example.com:5672/%2Ftest
-		exchange: groundcontrol
+		exchange: symphony
 
 	logging:
-		groundcontrol: debug STDERR (color)
+		symphony: debug STDERR (color)
 
 
-GroundControl won't create the exchange for you, it is expected to
+Symphony won't create the exchange for you, it is expected to
 already exist under the specified virtual host.  (There are a lot of
 server-side exchange configuration options, and we don't make any
 assumptions on your behalf.)  The only requirement is that it is a
@@ -71,18 +71,18 @@ won't need to re-create it after any RabbitMQ service restarts.
 
 = Building a Task
 
-Tasks inherit from the GroundControl::Task class.  You can start an
-individual task directly via the 'groundcontrol-task' binary, or as a
-pool of managed processes via the 'groundcontrol' daemon, or by simply
+Tasks inherit from the Symphony::Task class.  You can start an
+individual task directly via the 'symphony-task' binary, or as a
+pool of managed processes via the 'symphony' daemon, or by simply
 calling #run on the class itself.
 
 == The Simplest Task
 
 	#!/usr/bin/env ruby
 	
-	require 'groundcontrol'
+	require 'symphony'
 	
-	class Test < GroundControl::Task
+	class Test < Symphony::Task
 		
 		# Process all events
 		subscribe_to '#'
@@ -96,7 +96,7 @@ calling #run on the class itself.
 		end
 	end
 	
-	GroundControl.load_config( 'etc/config.yml' )
+	Symphony.load_config( 'etc/config.yml' )
 	Test.run
 
 
@@ -131,19 +131,19 @@ sane (but configurable) name, along with subscription bindings, ONLY if
 the queue didn't previously exist.  The auto-delete flag ensures that
 when the last worker disconnects, the queue is automatically removed
 from the AMQP broker, setting everything back to the state it was before
-a GroundControl worker ever connected.
+a Symphony worker ever connected.
 
 Along the same logic as the initial exchange creation, if a matching
 queue exists already for a task name (an automatically generated or
 manually specified name with the 'queue_name' option), then a binding is
-NOT created.  GroundControl is 'hands off' for anything server side that
+NOT created.  Symphony is 'hands off' for anything server side that
 already exists, so you can enforce specific behaviors, and know that
-GroundControl won't fiddle with them.
+Symphony won't fiddle with them.
 
 This can be confusing if you've created a queue manually for a task,
 and didn't also manually create a binding for the topic key.  There are
 some advanced routing cases where you'll want to set up queues yourself,
-rather than let GroundControl automatically create and remove them,
+rather than let Symphony automatically create and remove them,
 we'll talk more on that later.
 
 
@@ -190,7 +190,7 @@ resources (databases, etc.)
 
 Settings your work_model to 'oneshot' causes the task to exit
 immediately after performing its work.  Clearly, this only makes sense
-if you're running managed processes under the GroundControl daemon, so a
+if you're running managed processes under the Symphony daemon, so a
 fresh process can take its place.  You can do all of your expensive work
 within the #work method, leaving the main "waiting for messages" loop as
 low-resource as possible.
@@ -235,10 +235,10 @@ retry instead:
 
 == Queue Name
 
-By default, GroundControl will try and create a queue based on the Class
+By default, Symphony will try and create a queue based on the Class
 name of the task.  You can override this per-task.
 
-	class Test < GroundControl::Task
+	class Test < Symphony::Task
 		
 		# Process all events
 		subscribe_to '#'
@@ -252,9 +252,9 @@ name of the task.  You can override this per-task.
 
 = Plugins
 
-Plugins change or enhance the behavior of a GroundControl::Task.  They
+Plugins change or enhance the behavior of a Symphony::Task.  They
 are enabled with the 'plugin' option, with the name of the plugin (or
-comma separated plugins) as a symbol argument.  GroundControl currently
+comma separated plugins) as a symbol argument.  Symphony currently
 ships with two.
 
 
@@ -275,7 +275,7 @@ in the #work method, and instead links individual units of work to
 separate #on declarations.  This makes tasks that are designed to
 receive multiple message topics much easier to maintain and test.
 
-	class Test < GroundControl::Task
+	class Test < Symphony::Task
 		
 		# Use the routing plugin
 		plugin :routing
@@ -302,14 +302,14 @@ It will only return true (signalling success) if all blocks return true.
 = Publishing messages
 
 Because AMQP is language agnostic and a message can have many unique
-flags attached to it, this is another area where GroundControl remains
+flags attached to it, this is another area where Symphony remains
 neutral, and imposes nothing.
 
-If you want to publish or republish from within GroundControl, you can
-get a reference to the exchange object GroundControl is binding to via
-the GroundControl::Queue class:
+If you want to publish or republish from within Symphony, you can
+get a reference to the exchange object Symphony is binding to via
+the Symphony::Queue class:
 
-	exchange = GroundControl::Queue.amqp_exchange
+	exchange = Symphony::Queue.amqp_exchange
 
 This is a Bunny object that you can interact with directly.  See the
 Bunny documentation[http://rubybunny.info/articles/exchanges.html] for
@@ -321,7 +321,7 @@ options.
 == Avoid Infinite Retry and/or Failure Loops?
 
 When publishing, include a message expiration.  (Again, this has a
-different goal than the 'timeout' option for the GroundControl::Task
+different goal than the 'timeout' option for the Symphony::Task
 class, which can dislodge a potentially stuck worker.)
 
 With an expiration, a task that retries will eventually meet it's
@@ -349,7 +349,7 @@ automatically.
 	Listing policies ...
 	/     DLX     queues  ^[^_].* {"dead-letter-exchange":"_failures"}    0
 
-There is an example task (groundcontrol/lib/tasks/failure_logger.rb)
+There is an example task (symphony/lib/tasks/failure_logger.rb)
 that you're welcome to use as a foundation for your error reporting.
 What you do with the errors is up to you -- the failure_logger example
 assumes it is binding to a dead letter queue, and it simply logs to
@@ -376,6 +376,6 @@ With a binding in place, messages will be retained on the RabbitMQ
 server until a consumer drains them.  If the messages are published with
 the 'persistent' flag, they'll also survive RabbitMQ server restarts.
 
-With this setup, GroundControl won't create or modify any queues.  It
+With this setup, Symphony won't create or modify any queues.  It
 will just attach, start receiving events, and get to work.
 

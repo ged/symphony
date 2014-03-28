@@ -1,8 +1,0 @@
-#!/usr/bin/env ruby
-
-require 'groundcontrol'
-require 'groundcontrol/worker_daemon'
-
-Encoding.default_internal = Encoding::UTF_8
-GroundControl::Daemon.run( ARGV )
-

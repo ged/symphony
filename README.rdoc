@@ -1,29 +1,29 @@
-= groundcontrol
+= symphony
 
-wiki:: http://bitbucket.org/ged/groundcontrol
-docs:: http://deveiate.org/code/groundcontrol
+wiki:: http://bitbucket.org/ged/symphony
+docs:: http://deveiate.org/code/symphony
 
 
 == Description
 
-GroundControl is a subscription-based asynchronous job system. It
+Symphony is a subscription-based asynchronous job system. It
 allows you to define jobs that watch for lightweight events from a
 distributed-messaging AMQP broker, and do work based on their payload.
 
 It includes several executables under bin/:
 
-groundcontrol::
+symphony::
   A daemon which manages startup and shutdown of one or more Workers
   running Tasks as they are published from a queue.
 
-groundcontrol-task::
+symphony-task::
   A wrapper that runs a single task, useful for testing, or if you don't
-  require the process management that the groundcontrol daemon provides.
+  require the process management that the symphony daemon provides.
 
 
 == Synopsis
 
-	class WorkerTask < GroundControl::Task
+	class WorkerTask < Symphony::Task
 		# Process all events
 		subscribe_to '#'
 
@@ -39,14 +39,14 @@ For a more detailed description of usage, please refer to the USAGE document.
 
 == Installation
 
-    gem install groundcontrol
+    gem install symphony
 
 
 == Contributing
 
 You can check out the current development source with Mercurial via its
-{project page}[http://bitbucket.org/ged/groundcontrol]. Or if you prefer Git, via 
-{its Github mirror}[https://github.com/ged/groundcontrol].
+{project page}[http://bitbucket.org/ged/symphony]. Or if you prefer Git, via 
+{its Github mirror}[https://github.com/ged/symphony].
 
 After checking out the source, run:
 

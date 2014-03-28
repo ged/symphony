@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+
+require 'symphony'
+require 'symphony/task'
+
+taskname = ARGV.shift or raise "no task name given"
+
+Symphony.load_config( 'etc/config.yml' )
+Symphony::Task.get_subclass( taskname ).run
+

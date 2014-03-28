@@ -6,11 +6,11 @@ require 'metriks'
 require 'metriks/reporter/logger'
 require 'metriks/reporter/proc_title'
 
-require 'groundcontrol' unless defined?( GroundControl )
+require 'symphony' unless defined?( Symphony )
 
 
-# Metrics for GroundControl Tasks.
-module GroundControl::Metrics
+# Metrics for Symphony Tasks.
+module Symphony::Metrics
 
 	#
 	# Instance methods
@@ -27,7 +27,7 @@ module GroundControl::Metrics
 		@rusage_gauge = @metriks_registry.gauge('job.rusage') { Process.rusage.to_h }
 
 		@log_reporter = Metriks::Reporter::Logger.new(
-			logger: Loggability[ GroundControl ],
+			logger: Loggability[ Symphony ],
 			registry: @metriks_registry )
 		@proc_reporter = Metriks::Reporter::ProcTitle.new(
 			prefix: self.class.name,
@@ -80,5 +80,5 @@ module GroundControl::Metrics
 		end
 	end
 
-end # module GroundControl::Metrics
+end # module Symphony::Metrics
 

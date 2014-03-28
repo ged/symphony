@@ -3,13 +3,13 @@
 require 'pp'
 require 'pathname'
 require 'tmpdir'
-require 'groundcontrol/task' unless defined?( GroundControl::Task )
-require 'groundcontrol/metrics'
+require 'symphony/task' unless defined?( Symphony::Task )
+require 'symphony/metrics'
 
 
 # A spike to log events
-class Auditor < GroundControl::Task
-	prepend GroundControl::Metrics
+class Auditor < Symphony::Task
+	prepend Symphony::Metrics
 
 	subscribe_to '#'
 	prefetch 1000

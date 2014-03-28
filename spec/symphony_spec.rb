@@ -3,10 +3,10 @@
 require_relative 'helpers'
 
 require 'rspec'
-require 'groundcontrol'
+require 'symphony'
 
 
-describe GroundControl do
+describe Symphony do
 
 
 
