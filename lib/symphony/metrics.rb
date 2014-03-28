@@ -28,7 +28,8 @@ module Symphony::Metrics
 
 		@log_reporter = Metriks::Reporter::Logger.new(
 			logger: Loggability[ Symphony ],
-			registry: @metriks_registry )
+			registry: @metriks_registry,
+			prefix: self.class.name )
 		@proc_reporter = Metriks::Reporter::ProcTitle.new(
 			prefix: self.class.name,
 			registry: @metriks_registry,

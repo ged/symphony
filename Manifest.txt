@@ -23,8 +23,8 @@ lib/symphony/tasks/pinger.rb
 lib/symphony/tasks/simulator.rb
 lib/symphony/tasks/ssh.rb
 lib/symphony/tasks/sshscript.rb
+spec/helpers.rb
 spec/symphony/mixins_spec.rb
 spec/symphony/queue_spec.rb
 spec/symphony/task_spec.rb
 spec/symphony_spec.rb
-spec/helpers.rb

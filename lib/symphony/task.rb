@@ -51,6 +51,14 @@ class Symphony::Task
 	end
 
 
+	### Prepare the process after being forked from the Daemon.
+	def self::after_fork
+		self.log.debug "After fork [%d]: Threads: %p" % [ Process.pid, ThreadGroup::Default.list ]
+		Process.setpgrp
+		Symphony.config.install
+	end
+
+
 	### Inheritance hook -- set some defaults on subclasses.
 	def self::inherited( subclass )
 		super
@@ -191,6 +199,7 @@ class Symphony::Task
 		@shutting_down  = false
 		@restarting     = false
 	end
+
 
 
 	######

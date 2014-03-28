@@ -209,7 +209,8 @@ class Symphony::Queue
 		tag     = self.consumer_tag
 
 		# Last argument is *no_ack*, so need to invert the logic
-		self.log.debug "Creating Bunny::Consumer for %p with tag: %s" % [ amqp_queue, tag ]
+		self.log.debug "Creating consumer for the '%s' queue with tag: %s" %
+			[ amqp_queue.name, tag ]
 		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode )
 
 		cons.on_delivery do |delivery_info, properties, payload|
@@ -308,6 +309,21 @@ class Symphony::Queue
 		self.shutting_down = true
 		self.consumer.channel.close
 	end
+
+
+	### Return a human-readable representation of the Queue in a form suitable for debugging.
+	def inspect
+		return "#<%p:%#0x %s (%s) ack: %s, routing: %p, prefetch: %d>" % [
+			self.class,
+			self.object_id * 2,
+			self.name,
+			self.consumer_tag,
+			self.acknowledge ? "yes" : "no",
+			self.routing_keys,
+			self.prefetch,
+		]
+	end
+
 
 end # class Symphony::Queue
 
