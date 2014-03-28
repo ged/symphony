@@ -10,18 +10,18 @@ require 'msgpack'
 require 'yajl'
 require 'yaml'
 
-require 'groundcontrol' unless defined?( GroundControl )
-require 'groundcontrol/signal_handling'
+require 'symphony' unless defined?( Symphony )
+require 'symphony/signal_handling'
 
 
-# A task is the subclassable unit of work that GroundControl loads when it starts up.
-class GroundControl::Task
+# A task is the subclassable unit of work that Symphony loads when it starts up.
+class Symphony::Task
 	extend Loggability,
 	       Pluggability,
 	       Sysexits,
-	       GroundControl::MethodUtilities
+	       Symphony::MethodUtilities
 
-	include GroundControl::SignalHandling
+	include Symphony::SignalHandling
 
 
 	# Signal to reset to defaults for the child
@@ -31,12 +31,12 @@ class GroundControl::Task
 	WORK_MODELS = %i[ longlived oneshot ]
 
 
-	# Loggability API -- log to groundcontrol's logger
-	log_to :groundcontrol
+	# Loggability API -- log to symphony's logger
+	log_to :symphony
 
 	# Pluggability API -- set the directory/directories that will be search when trying to
 	# load tasks by name.
-	plugin_prefixes 'groundcontrol/tasks'
+	plugin_prefixes 'symphony/tasks'
 
 
 	### Create a new Task object and listen for work. Exits with the code returned
@@ -63,10 +63,10 @@ class GroundControl::Task
 	end
 
 
-	### Fetch the GroundControl::Queue for this task, creating it if necessary.
+	### Fetch the Symphony::Queue for this task, creating it if necessary.
 	def self::queue
 		unless @queue
-			@queue = GroundControl::Queue.for_task( self )
+			@queue = Symphony::Queue.for_task( self )
 		end
 		return @queue
 	end
@@ -236,14 +236,14 @@ class GroundControl::Task
 		self.restarting = true
 		self.log.warn "Restarting..."
 
-		if GroundControl.config.reload
+		if Symphony.config.reload
 			self.log.info "  config reloaded"
 		else
 			self.log.info "  no config changes"
 		end
 
 		self.log.info "  resetting queue"
-		GroundControl::Queue.reset
+		Symphony::Queue.reset
 		self.queue.shutdown
 	end
 
@@ -403,5 +403,5 @@ class GroundControl::Task
 	alias_method :on_interrupt, :on_terminate
 
 
-end # class GroundControl::Task
+end # class Symphony::Task
 

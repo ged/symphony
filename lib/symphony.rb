@@ -3,11 +3,11 @@
 require 'loggability'
 require 'configurability'
 
-# GroundControl -- an evented asynchronous thingie.
+# Symphony -- an evented asynchronous thingie.
 #
 # See the README for additional guidance.
 #
-module GroundControl
+module Symphony
 	extend Loggability,
 	       Configurability
 
@@ -19,14 +19,14 @@ module GroundControl
 
 
 	# The name of the environment variable to check for config file overrides
-	CONFIG_ENV = 'GROUNDCONTROL_CONFIG'
+	CONFIG_ENV = 'SYMPHONY_CONFIG'
 
 	# The path to the default config file
 	DEFAULT_CONFIG_FILE = 'etc/config.yml'
 
 
-	# Loggability API -- set up groundcontrol's logger
-	log_as :groundcontrol
+	# Loggability API -- set up symphony's logger
+	log_as :symphony
 
 
 	### Get the loaded config (a Configurability::Config object)
@@ -48,9 +48,9 @@ module GroundControl
 	end
 
 
-	require 'groundcontrol/mixins'
-	require 'groundcontrol/queue'
-	require 'groundcontrol/task'
+	require 'symphony/mixins'
+	require 'symphony/queue'
+	require 'symphony/task'
 
-end # module GroundControl
+end # module Symphony
 

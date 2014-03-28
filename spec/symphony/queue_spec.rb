@@ -2,9 +2,9 @@
 
 require_relative '../helpers'
 
-require 'groundcontrol/queue'
+require 'symphony/queue'
 
-describe GroundControl::Queue do
+describe Symphony::Queue do
 
 
 	before( :each ) do
@@ -19,7 +19,7 @@ describe GroundControl::Queue do
 	it "can build a Hash of AMQP options from its configuration" do
 		expect( described_class.amqp_session_options ).to include({
 			heartbeat: :server,
-			logger:    Loggability[ GroundControl ],
+			logger:    Loggability[ Symphony ],
 		})
 	end
 
@@ -30,7 +30,7 @@ describe GroundControl::Queue do
 			host: 'spimethorpe.com',
 			port: 23456,
 			heartbeat: :server,
-			logger:    Loggability[ GroundControl ],
+			logger:    Loggability[ Symphony ],
 		})
 	end
 
@@ -84,7 +84,7 @@ describe GroundControl::Queue do
 		it "can fetch the configured exchange" do
 			bunny = double( "Bunny session" )
 			channel = double( "Bunny channel" )
-			exchange = double( "GroundControl exchange" )
+			exchange = double( "Symphony exchange" )
 			expect( Bunny ).to receive( :new ).
 				with( described_class.broker_uri, described_class.amqp_session_options ).
 				and_return( bunny )
@@ -102,7 +102,7 @@ describe GroundControl::Queue do
 
 		let( :queue ) { described_class.for_task(testing_task_class) }
 
-		let( :testing_task_class ) { Class.new(GroundControl::Task) }
+		let( :testing_task_class ) { Class.new(Symphony::Task) }
 		let( :session ) { double("Bunny session", :start => true ) }
 
 		before( :each ) do
@@ -126,7 +126,7 @@ describe GroundControl::Queue do
 			allow( described_class.amqp_session ).to receive( :create_channel ).
 				and_return( new_channel )
 			expect( new_channel ).to receive( :prefetch ).
-				with( GroundControl::Queue::DEFAULT_PREFETCH )
+				with( Symphony::Queue::DEFAULT_PREFETCH )
 			expect( new_channel ).to receive( :queue ).
 				with( queue.name, auto_delete: true ).
 				and_return( amqp_queue )
@@ -143,7 +143,7 @@ describe GroundControl::Queue do
 				with( queue.name, passive: true ).
 				and_return( amqp_queue )
 			expect( described_class.amqp_channel ).to receive( :prefetch ).
-				with( GroundControl::Queue::DEFAULT_PREFETCH )
+				with( Symphony::Queue::DEFAULT_PREFETCH )
 
 			expect( queue.create_amqp_queue ).to be( amqp_queue )
 		end
@@ -157,7 +157,7 @@ describe GroundControl::Queue do
 				with( testing_task_class.queue_name, passive: true ).
 				and_return( amqp_queue )
 			expect( described_class.amqp_channel ).to receive( :prefetch ).
-				with( GroundControl::Queue::DEFAULT_PREFETCH )
+				with( Symphony::Queue::DEFAULT_PREFETCH )
 
 			expect( Bunny::Consumer ).to receive( :new ).
 				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).
@@ -250,7 +250,7 @@ describe GroundControl::Queue do
 				with( testing_task_class.queue_name, passive: true ).
 				and_return( amqp_queue )
 			expect( described_class.amqp_channel ).to receive( :prefetch ).
-				with( GroundControl::Queue::DEFAULT_PREFETCH )
+				with( Symphony::Queue::DEFAULT_PREFETCH )
 
 			expect( Bunny::Consumer ).to receive( :new ).
 				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).

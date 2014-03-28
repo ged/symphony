@@ -6,7 +6,7 @@ rescue LoadError
 	abort "This Rakefile requires hoe (gem install hoe)"
 end
 
-GEMSPEC = 'groundcontrol.gemspec'
+GEMSPEC = 'symphony.gemspec'
 
 
 Hoe.plugin :mercurial
@@ -17,11 +17,11 @@ Hoe.plugin :bundler
 Hoe.plugins.delete :rubyforge
 Hoe.plugins.delete :gemcutter
 
-hoespec = Hoe.spec 'groundcontrol' do |spec|
+hoespec = Hoe.spec 'symphony' do |spec|
 	spec.readme_file = 'README.rdoc'
 	spec.history_file = 'History.rdoc'
 	spec.extra_rdoc_files = FileList[ '*.rdoc' ]
-	spec.spec_extras[:rdoc_options] = ['-f', 'fivefish', '-t', 'GroundControl']
+	spec.spec_extras[:rdoc_options] = ['-f', 'fivefish', '-t', 'Symphony']
 	spec.spec_extras[:required_rubygems_version] = '>= 2.0.3'
 	spec.license 'BSD'
 
@@ -67,7 +67,6 @@ task :gemspec => GEMSPEC
 file GEMSPEC => __FILE__ do |task|
 	spec = $hoespec.spec
 	spec.files.delete( '.gemtest' )
-	spec.signing_key = nil
 	spec.version = "#{spec.version}.pre#{Time.now.strftime("%Y%m%d%H%M%S")}"
 	File.open( task.name, 'w' ) do |fh|
 		fh.write( spec.to_ruby )

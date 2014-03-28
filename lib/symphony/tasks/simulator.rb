@@ -2,12 +2,12 @@
 
 require 'pathname'
 require 'tmpdir'
-require 'groundcontrol/task' unless defined?( GroundControl::Task )
-require 'groundcontrol/metrics'
+require 'symphony/task' unless defined?( Symphony::Task )
+require 'symphony/metrics'
 
 # A spike to test out various task execution outcomes.
-class Simulator < GroundControl::Task
-	prepend GroundControl::Metrics
+class Simulator < Symphony::Task
+	prepend Symphony::Metrics
 
 	# Simulate processing all events
 	subscribe_to '#'

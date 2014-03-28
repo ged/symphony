@@ -1,12 +1,12 @@
 # -*- ruby -*-
 #encoding: utf-8
 
-require 'groundcontrol'
+require 'symphony'
 
 
-# A module containing signal-handling logic for both tasks and the GroundControl
+# A module containing signal-handling logic for both tasks and the Symphony
 # daemon.
-module GroundControl::SignalHandling
+module Symphony::SignalHandling
 
 
 	### Wrap a block in signal-handling.
@@ -103,5 +103,5 @@ module GroundControl::SignalHandling
 	end
 
 
-end # module GroundControl::SignalHandling
+end # module Symphony::SignalHandling
 

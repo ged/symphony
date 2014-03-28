@@ -3,21 +3,21 @@
 
 require 'loggability'
 
-require 'groundcontrol' unless defined?( GroundControl )
-require 'groundcontrol/mixins'
+require 'symphony' unless defined?( Symphony )
+require 'symphony/mixins'
 
 
 # A mixin for adding handlers for multiple topic keys to a Task.
-module GroundControl::Routing
+module Symphony::Routing
 	extend Loggability
-	log_to :groundcontrol
+	log_to :symphony
 
 	### Add some instance data to inheriting +subclass+es.
 	def self::included( mod )
 		self.log.info "Adding routing to %p" % [ mod ]
 		super
-		mod.extend( GroundControl::MethodUtilities )
-		mod.extend( GroundControl::Routing::ClassMethods )
+		mod.extend( Symphony::MethodUtilities )
+		mod.extend( Symphony::Routing::ClassMethods )
 		mod.singleton_attr_accessor( :routes )
 		mod.routes = Hash.new {|h,k| h[k] = [] }
 	end
@@ -93,6 +93,6 @@ module GroundControl::Routing
 	end
 
 
-end # module GroundControl::Routing
+end # module Symphony::Routing
 
 

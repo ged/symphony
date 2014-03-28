@@ -2,12 +2,12 @@
 #encoding: utf-8
 
 
-module GroundControl
+module Symphony
 
 	# A collection of methods for declaring other methods.
 	#
 	#   class MyClass
-	#       extend GroundControl::MethodUtilities
+	#       extend Symphony::MethodUtilities
 	#
 	#       singleton_attr_accessor :types
 	#       singleton_method_alias :kinds, :types
@@ -72,4 +72,4 @@ module GroundControl
 
 
 
-end # module GroundControl
+end # module Symphony

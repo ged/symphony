@@ -4,21 +4,21 @@ require 'bunny'
 require 'loggability'
 require 'configurability'
 
-require 'groundcontrol' unless defined?( GroundControl )
-require 'groundcontrol/mixins'
+require 'symphony' unless defined?( Symphony )
+require 'symphony/mixins'
 
 
-# An object class that encapsulates queueing logic for GroundControl jobs.
-class GroundControl::Queue
+# An object class that encapsulates queueing logic for Symphony jobs.
+class Symphony::Queue
 	extend Loggability,
 	       Configurability,
-	       GroundControl::MethodUtilities
+	       Symphony::MethodUtilities
 
 
 	# Configurability defaults
 	CONFIG_DEFAULTS = {
 		broker_uri:  nil,
-		exchange:    'groundcontrol',
+		exchange:    'symphony',
 		heartbeat:   'server',
 	}
 
@@ -26,8 +26,8 @@ class GroundControl::Queue
 	DEFAULT_PREFETCH = 10
 
 
-	# Loggability API -- set up groundcontrol's logger
-	log_to :groundcontrol
+	# Loggability API -- set up symphony's logger
+	log_to :symphony
 
 	# Configurability API -- use the 'amqp' section of the config
 	config_key :amqp
@@ -47,7 +47,7 @@ class GroundControl::Queue
 	singleton_attr_accessor :session_opts
 
 
-	### Configurability API -- install the 'groundcontrol' section of the config
+	### Configurability API -- install the 'symphony' section of the config
 	### when it's loaded.
 	def self::configure( config=nil )
 		config = self.defaults.merge( config || {} )
@@ -61,7 +61,7 @@ class GroundControl::Queue
 	### Fetch a Hash of AMQP options.
 	def self::amqp_session_options
 		opts = self.session_opts.merge({
-			logger: Loggability[ GroundControl ],
+			logger: Loggability[ Symphony ],
 		})
 		opts[:heartbeat] = opts[:heartbeat].to_sym if opts[:heartbeat].is_a?( String )
 
@@ -94,8 +94,8 @@ class GroundControl::Queue
 
 	### Fetch a Hash that stores per-thread AMQP objects.
 	def self::amqp
-		@groundcontrol ||= {}
-		return @groundcontrol
+		@symphony ||= {}
+		return @symphony
 	end
 
 
@@ -309,5 +309,5 @@ class GroundControl::Queue
 		self.consumer.channel.close
 	end
 
-end # class GroundControl::Queue
+end # class Symphony::Queue
 

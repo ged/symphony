@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+require 'symphony'
+require 'symphony/worker_daemon'
+
+Encoding.default_internal = Encoding::UTF_8
+Symphony::Daemon.run( ARGV )
+

@@ -4,16 +4,16 @@ require 'net/ssh'
 require 'net/sftp'
 require 'tmpdir'
 require 'inversion'
-require 'groundcontrol/task' unless defined?( GroundControl::Task )
+require 'symphony/task' unless defined?( Symphony::Task )
 
 
 # A task to execute a script on a remote host via SSH.
-class GroundControl::Task::SSHScript < GroundControl::Task
+class Symphony::Task::SSHScript < Symphony::Task
 	extend Loggability,
 	       MethodUtilities
 
-	# Loggability API -- Log to groundcontrol's logger
-	log_to :groundcontrol
+	# Loggability API -- Log to symphony's logger
+	log_to :symphony
 
 
 	# Template config
@@ -164,5 +164,5 @@ class GroundControl::Task::SSHScript < GroundControl::Task
 		conn.exec!( "rm #{remote_filename}" ) unless self.nocleanup
 	end
 
-end # class GroundControl::Task::SSHScript
+end # class Symphony::Task::SSHScript
 

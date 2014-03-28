@@ -6,22 +6,22 @@ require 'loggability'
 require 'fcntl'
 require 'trollop'
 
-require 'groundcontrol' unless defined?( GroundControl )
-require 'groundcontrol/worker'
-require 'groundcontrol/task'
+require 'symphony' unless defined?( Symphony )
+require 'symphony/worker'
+require 'symphony/task'
 
 
-# The GroundControl worker daemon. Watches a GroundControl job queue, and runs the tasks
+# The Symphony worker daemon. Watches a Symphony job queue, and runs the tasks
 # contained in the jobs it fetches.
-class GroundControl::Daemon
+class Symphony::Daemon
 	extend Loggability,
 	       Configurability
 
-	include GroundControl::SignalHandling
+	include Symphony::SignalHandling
 
 
-	# Loggability API -- log to the groundcontrol logger
-	log_to :groundcontrol
+	# Loggability API -- log to the symphony logger
+	log_to :symphony
 
 	# Configurability API -- use the 'worker_daemon' section of the config
 	config_key :worker_daemon
@@ -47,9 +47,9 @@ class GroundControl::Daemon
 
 	### Get the daemon's version as a String.
 	def self::version_string( include_buildnum=false )
-		vstring = "%s %s" % [ self.name, GroundControl::VERSION ]
+		vstring = "%s %s" % [ self.name, Symphony::VERSION ]
 		if include_buildnum
-			rev = GroundControl::REVISION[/: ([[:xdigit:]]+)/, 1] || '0'
+			rev = Symphony::REVISION[/: ([[:xdigit:]]+)/, 1] || '0'
 			vstring << " (build %s)" % [ rev ]
 		end
 		return vstring
@@ -80,7 +80,7 @@ class GroundControl::Daemon
 		end
 
 		# Now load the config file
-		GroundControl.load_config( opts.config )
+		Symphony.load_config( opts.config )
 
 		# Re-enable debug-level logging if the config reset it
 		Loggability.level = :debug if opts.debug
@@ -97,7 +97,7 @@ class GroundControl::Daemon
 	### Create a new Daemon instance.
 	def initialize( options )
 		@options             = options
-		@queue               = GroundControl::Queue.new( options.queue )
+		@queue               = Symphony::Queue.new( options.queue )
 
 		# Process control
 		@crew_size           = options.crew_size
@@ -124,7 +124,7 @@ class GroundControl::Daemon
 	# A self-pipe for deferred signal-handling
 	attr_reader :selfpipe
 
-	# The GroundControl::Queue that jobs will be fetched from
+	# The Symphony::Queue that jobs will be fetched from
 	attr_reader :queue
 
 	# The Configurability::Config object for the current configuration.
@@ -314,11 +314,11 @@ class GroundControl::Daemon
 	end
 
 
-	### Start a new GroundControl::Worker and return its PID.
+	### Start a new Symphony::Worker and return its PID.
 	def start_worker
 		return if self.shutting_down?
 		self.log.debug "Starting a worker."
-		return GroundControl::Worker.start( self.queue )
+		return Symphony::Worker.start( self.queue )
 	end
 
 
@@ -369,4 +369,4 @@ class GroundControl::Daemon
 	end
 
 
-end # class GroundControl::Daemon
+end # class Symphony::Daemon

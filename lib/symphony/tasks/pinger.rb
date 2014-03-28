@@ -2,11 +2,11 @@
 
 require 'socket'
 require 'timeout'
-require 'groundcontrol/task' unless defined?( GroundControl::Task )
+require 'symphony/task' unless defined?( Symphony::Task )
 
 
 ### A proof-of-concept task to determine ssh availability of a host.
-class GroundControl::Task::Pinger < GroundControl::Task
+class Symphony::Task::Pinger < Symphony::Task
 
 	# The topic key to subscribe to
 	subscribe_to 'monitor.availability.port',
@@ -60,5 +60,5 @@ class GroundControl::Task::Pinger < GroundControl::Task
 	end
 
 
-end # class GroundControl::Task::Pinger
+end # class Symphony::Task::Pinger
 

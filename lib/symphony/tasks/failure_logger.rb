@@ -3,13 +3,13 @@
 require 'objspace'
 require 'pathname'
 require 'tmpdir'
-require 'groundcontrol/task' unless defined?( GroundControl::Task )
-require 'groundcontrol/metrics'
+require 'symphony/task' unless defined?( Symphony::Task )
+require 'symphony/metrics'
 
 
 # Log events that get published to the dead-letter queue
-class FailureLogger < GroundControl::Task
-	prepend GroundControl::Metrics
+class FailureLogger < Symphony::Task
+	prepend Symphony::Metrics
 
 	# Audit all events
 	subscribe_to '#'

@@ -2,22 +2,22 @@
 
 require_relative '../helpers'
 
-require 'groundcontrol/task'
+require 'symphony/task'
 
-describe GroundControl::Task do
+describe Symphony::Task do
 
 	before( :all ) do
-		GroundControl::Queue.configure
+		Symphony::Queue.configure
 	end
 
 	before( :each ) do
-		GroundControl::Queue.reset
+		Symphony::Queue.reset
 		allow( Bunny ).to receive( :new ).and_return( amqp_session )
 	end
 
 	after( :each ) do
 		# reset signal handlers
-		GroundControl::Task::SIGNALS.each do |sig|
+		Symphony::Task::SIGNALS.each do |sig|
 			Signal.trap( sig, :DFL )
 		end
 	end
