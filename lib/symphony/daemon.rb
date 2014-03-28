@@ -159,12 +159,6 @@ class Symphony::Daemon
 	def run
 		self.log.info "Starting task daemon"
 
-		# Become session leader if we can
-		if Process.euid.zero?
-			sid = Process.setsid
-			self.log.debug "  became session leader of new session: %d" % [ sid ]
-		end
-
 		# Set up traps for common signals
 		self.set_signal_traps( *QUEUE_SIGS )
 
@@ -270,7 +264,7 @@ class Symphony::Daemon
 
 	### Start any tasks which aren't already running
 	def start_missing_children
-		missing_tasks = self.class.tasks - self.running_tasks.values
+		missing_tasks = self.find_missing_tasks
 		return if missing_tasks.empty?
 
 		# Return unless the throttle period has lapsed
@@ -288,6 +282,22 @@ class Symphony::Daemon
 		end
 
 		@last_child_started = Time.now
+	end
+
+
+	### Examine the running tasks and return any that are missing.
+	def find_missing_tasks
+		missing_tasks = []
+
+		self.class.tasks.uniq.each do |task_type|
+			count = self.class.tasks.count( task_type )
+			missing = count - self.running_tasks.values.count( task_type )
+			missing.times do
+				missing_tasks << task_type
+			end
+		end
+
+		return missing_tasks
 	end
 
 
@@ -326,12 +336,15 @@ class Symphony::Daemon
 	### Start a new Symphony::Task and return its PID.
 	def start_worker( task_class )
 		return if self.shutting_down?
+
 		self.log.debug "Starting a %p." % [ task_class ]
-		return Process.fork do
-			self.reset_signal_traps( *QUEUE_SIGS )
-			@selfpipe.each {|_,io| io.close }.clear
+		pid = Process.fork do
+			task_class.after_fork
 			task_class.run
 		end
+		Process.setpgid( pid, 0 )
+
+		return pid
 	end
 
 

@@ -150,7 +150,7 @@ describe Symphony::Queue do
 
 
 		it "subscribes to the message queue with a configured consumer to wait for messages" do
-			amqp_queue = double( "AMQP queue", channel: described_class.amqp_channel )
+			amqp_queue = double( "AMQP queue", name: 'a queue', channel: described_class.amqp_channel )
 			consumer = double( "Bunny consumer", channel: described_class.amqp_channel )
 
 			expect( described_class.amqp_channel ).to receive( :queue ).
@@ -202,7 +202,7 @@ describe Symphony::Queue do
 
 
 		it "sets up the queue and consumer to only run once if waiting in one-shot mode" do
-			amqp_queue = double( "AMQP queue", channel: described_class.amqp_channel )
+			amqp_queue = double( "AMQP queue", name: 'a queue', channel: described_class.amqp_channel )
 			consumer = double( "Bunny consumer", channel: described_class.amqp_channel )
 
 			expect( described_class.amqp_channel ).to receive( :queue ).
@@ -243,7 +243,7 @@ describe Symphony::Queue do
 
 
 		it "shuts down the consumer if the queues it's consuming from is deleted on the server" do
-			amqp_queue = double( "AMQP queue", channel: described_class.amqp_channel )
+			amqp_queue = double( "AMQP queue", name: 'a queue', channel: described_class.amqp_channel )
 			consumer = double( "Bunny consumer", channel: described_class.amqp_channel )
 
 			expect( described_class.amqp_channel ).to receive( :queue ).
@@ -277,7 +277,7 @@ describe Symphony::Queue do
 
 		it "creates a consumer with acknowledgements enabled if it has acknowledgements enabled" do
 			amqp_channel = double( "AMQP channel" )
-			amqp_queue = double( "AMQP queue", channel: amqp_channel )
+			amqp_queue = double( "AMQP queue", name: 'a queue', channel: amqp_channel )
 			consumer = double( "Bunny consumer" )
 
 			# Ackmode argument is actually 'no_ack'
@@ -293,7 +293,7 @@ describe Symphony::Queue do
 
 		it "creates a consumer with acknowledgements disabled if it has acknowledgements disabled" do
 			amqp_channel = double( "AMQP channel" )
-			amqp_queue = double( "AMQP queue", channel: amqp_channel )
+			amqp_queue = double( "AMQP queue", name: 'a queue', channel: amqp_channel )
 			consumer = double( "Bunny consumer" )
 
 			# Ackmode argument is actually 'no_ack'
