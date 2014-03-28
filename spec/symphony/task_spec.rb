@@ -69,8 +69,22 @@ describe Symphony::Task do
 				def self::name; 'ACME::TestingTask'; end
 			end
 		end
+		let( :payload ) {{ "the" => "payload" }}
+		let( :serialized_payload ) { Yajl.dump(payload) }
+		let( :metadata ) {{ :content_type => 'application/json' }}
 		let( :queue ) do
-			Symphony::Queue.for_task( task_class )
+			obj = Symphony::Queue.for_task( task_class )
+			# Don't really talk to AMQP for messages
+			allow( obj ).to receive( :wait_for_message ) do |oneshot, &callback|
+				callback.call( serialized_payload, metadata )
+			end
+			obj
+		end
+
+
+		it "puts the process into its own process group after a fork" do
+			expect( Process ).to receive( :setpgrp ).with( no_args )
+			task_class.after_fork
 		end
 
 
@@ -82,6 +96,12 @@ describe Symphony::Task do
 		it "can set an explicit queue name" do
 			task_class.queue_name( 'happy.fun.queue' )
 			expect( task_class.queue_name ).to eq( 'happy.fun.queue' )
+		end
+
+
+		it "can set the number of messages to prefetch" do
+			task_class.prefetch( 10 )
+			expect( task_class.prefetch ).to eq( 10 )
 		end
 
 
@@ -146,21 +166,103 @@ describe Symphony::Task do
 
 		context "an instance" do
 
+			let( :task_class ) do
+				Class.new( described_class ) do
+					def initialize( * )
+						super
+						@received_messages = []
+					end
+					attr_reader :received_messages
+
+					def work( payload, metadata )
+						self.received_messages << [ payload, metadata ]
+						true
+					end
+				end
+			end
+
 			let( :task ) { task_class.new(queue) }
 
 
-			it "raises an exception if it doesn't declare a #work method" do
+			it "handles received messages by calling its work method" do
+				expect( queue ).to receive( :wait_for_message ) do |oneshot, &callback|
+					callback.call( serialized_payload, metadata )
+				end
+
+				task.start_handling_messages
+
+				expect( task.received_messages ).to eq([ [payload, metadata] ])
+			end
+
+
+		end
+
+
+		context "an instance with a timeout" do
+
+			let( :task_class ) do
+				Class.new( described_class ) do
+					timeout 0.2
+					def initialize( * )
+						super
+						@received_messages = []
+						@sleeptime = 0
+					end
+					attr_reader :received_messages
+					attr_accessor :sleeptime
+
+					def work( payload, metadata )
+						self.received_messages << [ payload, metadata ]
+						sleep( self.sleeptime )
+						true
+					end
+				end
+			end
+
+			let( :task ) { task_class.new(queue) }
+
+
+			it "returns true if the work completes before the timeout" do
+				task.sleeptime = 0
+				expect( task.start_handling_messages ).to be_truthy
+			end
+
+
+			it "raises a Timeout::Error if the work takes longer than the timeout" do
+				task.sleeptime = task_class.timeout + 2
+				expect {
+					task.start_handling_messages
+				}.to raise_error( Timeout::Error, /execution expired/ )
+			end
+
+
+			it "returns false if the work takes longer than the timeout and the timeout_action is set to :retry" do
+				task_class.timeout_action( :retry )
+				task.sleeptime = task_class.timeout + 2
+				expect( task.start_handling_messages ).to be_falsey
+			end
+
+		end
+
+
+
+		context "an instance with no #work method" do
+
+			let( :task ) { task_class.new(queue) }
+
+			it "raises an exception when told to do work" do
 				expect {
 					task.work( 'payload', {} )
 				}.to raise_error( NotImplementedError, /#work/ )
 			end
 
-
-			it "sets signal handlers and waits for messages when started"
-
 		end
 
+
+
 	end
+
+
 
 end
 
