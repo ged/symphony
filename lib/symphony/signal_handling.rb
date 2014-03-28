@@ -89,6 +89,7 @@ module Symphony::SignalHandling
 	def ignore_signals( *signals )
 		self.log.debug "Ignoring signals."
 		signals.each do |sig|
+			next if sig == :CHLD
 			Signal.trap( sig, :IGNORE )
 		end
 	end
