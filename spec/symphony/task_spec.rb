@@ -64,82 +64,101 @@ describe Symphony::Task do
 
 	context "a concrete subclass" do
 
-		before( :each ) do
-			@task_class = Class.new( described_class ) do
+		let( :task_class ) do
+			Class.new( described_class ) do
 				def self::name; 'ACME::TestingTask'; end
 			end
+		end
+		let( :queue ) do
+			Symphony::Queue.for_task( task_class )
 		end
 
 
 		it "raises an exception if run without specifying any subscriptions" do
-			expect { @task_class.run }.to raise_error( ScriptError, /no subscriptions/i )
+			expect { task_class.run }.to raise_error( ScriptError, /no subscriptions/i )
 		end
 
 
 		it "can set an explicit queue name" do
-			@task_class.queue_name( 'happy.fun.queue' )
-			expect( @task_class.queue_name ).to eq( 'happy.fun.queue' )
+			task_class.queue_name( 'happy.fun.queue' )
+			expect( task_class.queue_name ).to eq( 'happy.fun.queue' )
 		end
 
 
 		it "can retry on timeout instead of rejecting" do
-			@task_class.timeout_action( :retry )
-			expect( @task_class.timeout_action ).to eq( :retry )
+			task_class.timeout_action( :retry )
+			expect( task_class.timeout_action ).to eq( :retry )
 		end
 
 
 		it "provides a default name for its queue based on its name" do
-			expect( @task_class.queue_name ).to eq( 'acme.testingtask' )
+			expect( task_class.queue_name ).to eq( 'acme.testingtask' )
 		end
 
 
 		it "can declare a pattern to use when subscribing" do
-			@task_class.subscribe_to( 'foo.test' )
-			expect( @task_class.routing_keys ).to include( 'foo.test' )
+			task_class.subscribe_to( 'foo.test' )
+			expect( task_class.routing_keys ).to include( 'foo.test' )
 		end
 
 
 		it "has acknowledgements enabled by default" do
-			expect( @task_class.acknowledge ).to eq( true )
+			expect( task_class.acknowledge ).to eq( true )
 		end
 
 
 		it "can enable acknowledgements" do
-			@task_class.acknowledge( true )
-			expect( @task_class.acknowledge ).to eq( true )
+			task_class.acknowledge( true )
+			expect( task_class.acknowledge ).to eq( true )
 		end
 
 
 		it "can disable acknowledgements" do
-			@task_class.acknowledge( false )
-			expect( @task_class.acknowledge ).to eq( false )
+			task_class.acknowledge( false )
+			expect( task_class.acknowledge ).to eq( false )
 		end
 
 
 		it "can set a timeout" do
-			@task_class.timeout( 10 )
-			expect( @task_class.timeout ).to eq( 10 )
+			task_class.timeout( 10 )
+			expect( task_class.timeout ).to eq( 10 )
 		end
 
 
 		it "can declare a one-shot work model" do
-			@task_class.work_model( :oneshot )
-			expect( @task_class.work_model ).to eq( :oneshot )
+			task_class.work_model( :oneshot )
+			expect( task_class.work_model ).to eq( :oneshot )
 		end
 
 
 		it "can declare a long-lived work model" do
-			@task_class.work_model( :longlived )
-			expect( @task_class.work_model ).to eq( :longlived )
+			task_class.work_model( :longlived )
+			expect( task_class.work_model ).to eq( :longlived )
 		end
 
 
 		it "raises an error if an invalid work model is declared " do
 			expect {
-				@task_class.work_model( :lazy )
+				task_class.work_model( :lazy )
 			}.to raise_error( /unknown work_model/i )
 		end
 
+
+		context "an instance" do
+
+			let( :task ) { task_class.new(queue) }
+
+
+			it "raises an exception if it doesn't declare a #work method" do
+				expect {
+					task.work( 'payload', {} )
+				}.to raise_error( NotImplementedError, /#work/ )
+			end
+
+
+			it "sets signal handlers and waits for messages when started"
+
+		end
 
 	end
 
