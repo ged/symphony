@@ -55,7 +55,7 @@ class Symphony::Task
 	def self::after_fork
 		self.log.debug "After fork [%d]: Threads: %p" % [ Process.pid, ThreadGroup::Default.list ]
 		Process.setpgrp
-		Symphony.config.install
+		Symphony.config.install if Symphony.config
 	end
 
 

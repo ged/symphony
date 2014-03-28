@@ -252,7 +252,7 @@ class Symphony::Daemon
 			self.reload_config
 
 		when :CHLD
-			self.log.warn "Got SIGCHLD."
+			self.log.info "Got SIGCHLD."
 			# Just need to wake up, nothing else necessary
 
 		else
