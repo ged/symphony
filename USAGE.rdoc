@@ -252,10 +252,7 @@ name of the task.  You can override this per-task.
 
 = Plugins
 
-Plugins change or enhance the behavior of a Symphony::Task.  They
-are enabled with the 'plugin' option, with the name of the plugin (or
-comma separated plugins) as a symbol argument.  Symphony currently
-ships with two.
+Plugins change or enhance the behavior of a Symphony::Task.
 
 
 == Metrics
@@ -265,8 +262,13 @@ of a task worker to the log.  It shows processed message averages and
 resource consumption summaries at the "info" log level, and also changes
 the process name to display a total count and jobs per second rate.
 
-	plugin :metrics
+	require 'symphony/metrics'
 
+	class Test < Symphony::Task
+		prepend Symphony::Metrics
+		# ...
+	end
+		
 
 == Routing
 
@@ -275,10 +277,10 @@ in the #work method, and instead links individual units of work to
 separate #on declarations.  This makes tasks that are designed to
 receive multiple message topics much easier to maintain and test.
 
+	require 'symphony/routing'
+
 	class Test < Symphony::Task
-		
-		# Use the routing plugin
-		plugin :routing
+		include Symphony::Routing
 		
 		on 'users.create', 'workstation.create' do |payload, metadata|
 			puts "A user or workstation wants to be created!"
