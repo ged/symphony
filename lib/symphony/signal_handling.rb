@@ -38,10 +38,10 @@ module Symphony::SignalHandling
 
 
 	### The body of the signal handler. Wait for at least one signal to arrive and
-	### handle it. This should be called inside a loop, either in its own thread or
-	### in another loop that doesn't block anywhere else.  Returns the
-	### selfpipe descriptor if a signal was received, or nil if given an optional
-	### +timeout+ occurs.
+	### handle it, or timeout and return if a +timeout+ integer is provided.  This
+	### should be called inside a loop, either in its own thread or in another loop
+	### that doesn't block anywhere else.  Returns true if a signal was handled, or
+	### false if a timeout occurred.
 	def wait_for_signals( timeout=nil )
 
 		# Wait on the selfpipe for signals
@@ -61,7 +61,7 @@ module Symphony::SignalHandling
 			self.handle_signal( sig )
 		end
 
-		return timeout ? fds : fds.first
+		return fds ? true : false
 	end
 
 
