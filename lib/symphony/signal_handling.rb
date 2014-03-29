@@ -39,12 +39,14 @@ module Symphony::SignalHandling
 
 	### The body of the signal handler. Wait for at least one signal to arrive and
 	### handle it. This should be called inside a loop, either in its own thread or
-	### in another loop that doesn't block anywhere else.
-	def wait_for_signals
+	### in another loop that doesn't block anywhere else.  Returns the
+	### selfpipe descriptor if a signal was received, or nil if given an optional
+	### +timeout+ occurs.
+	def wait_for_signals( timeout=nil )
 
 		# Wait on the selfpipe for signals
 		self.log.debug "  waiting for the selfpipe"
-		fds = IO.select( [@selfpipe[:reader]] )
+		fds = IO.select( [@selfpipe[:reader]], [], [], timeout )
 		begin
 			rval = @selfpipe[:reader].read_nonblock( 11 )
 			self.log.debug "    read from the selfpipe: %p" % [ rval ]
@@ -58,6 +60,8 @@ module Symphony::SignalHandling
 			self.log.debug "  got a queued signal: %p" % [ sig ]
 			self.handle_signal( sig )
 		end
+
+		return timeout ? fds : fds.first
 	end
 
 
