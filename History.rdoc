@@ -1,3 +1,12 @@
+== v0.4.0 [2014-03-28] Mahlon E. Smith <mahlon@martini.nu>
+
+Enhancement:
+
+Add an optional (disabled by default) timeout for the signal
+handling wait_for_signals() method, for potential re-use in
+alternate loop actions.
+
+
 == v0.3.0 [2014-03-28] Michael Granger <ged@FaerieMUD.org>
 
 Rewritten for AMQP and renamed to Symphony.
