@@ -8,6 +8,9 @@ end
 
 GEMSPEC = 'symphony.gemspec'
 
+EXPRESSION_RL = 'lib/symphony/intervalexpression.rl'
+EXPRESSION_RB = 'lib/symphony/intervalexpression.rb'
+
 
 Hoe.plugin :mercurial
 Hoe.plugin :signing
@@ -62,6 +65,12 @@ task :coverage do
 	Rake::Task[:spec].invoke
 end
 
+file EXPRESSION_RL
+file EXPRESSION_RB
+task EXPRESSION_RB => EXPRESSION_RL do |task|
+	 sh 'ragel', '-R', '-T1', '-Ls', task.prerequisites.first
+end
+task :spec => EXPRESSION_RB
 
 task :gemspec => GEMSPEC
 file GEMSPEC => __FILE__ do |task|
