@@ -11,6 +11,7 @@ bin/symphony-task
 etc/config.yml.example
 lib/symphony.rb
 lib/symphony/daemon.rb
+lib/symphony/intervalexpression.rb
 lib/symphony/metrics.rb
 lib/symphony/mixins.rb
 lib/symphony/queue.rb
