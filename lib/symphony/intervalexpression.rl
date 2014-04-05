@@ -162,7 +162,11 @@
 
 
 require 'symphony' unless defined?( Symphony )
+require 'symphony/mixins'
 require 'time'
+
+using Symphony::TimeRefinements
+
 
 ### Parse natural English expressions of times and intervals.
 ###
@@ -183,8 +187,10 @@ require 'time'
 ###  beginning a day from now, run 30 times per minute and finish in 2 weeks
 ###
 class Symphony::IntervalExpression
-	include Comparable
+	include Comparable,
+	        Symphony::TimeFunctions
 	extend Loggability
+
 	log_to :symphony
 
 	# Ragel accessors are injected as class methods/variables for some reason.
@@ -527,7 +533,7 @@ class Symphony::IntervalExpression
 		end
 
 		use_milliseconds = span.sub!( 'milli', '' )
-		interval = duration.to_i.send( span.to_sym )
+		interval = calculate_seconds( duration.to_i, span.to_sym )
 
 		# milliseconds
 		interval = duration.to_f / 1000 if use_milliseconds
