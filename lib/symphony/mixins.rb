@@ -71,20 +71,44 @@ module Symphony
 	end # module MethodUtilities
 
 
-	### A collection of methods to add to Numeric for convenience (stolen from
-	### ActiveSupport)
-	module NumericConstantMethods
+	# Functions for time calculations
+	module TimeFunctions
 
-		### Append features to the including +mod+.
-		def self::append_features( mod )
-			constants.each do |c|
-				self.const_get( c ).send( :append_features, mod )
-			end
-			super
+		###############
+		module_function
+		###############
+
+		### Calculate the (approximate) number of seconds that are in +count+ of the
+		### given +unit+ of time.
+		def calculate_seconds( count, unit )
+			return case unit
+				when :seconds, :second
+					count
+				when :minutes, :minute
+					count * 60
+				when :hours, :hour
+					count * 3600
+				when :days, :day
+					count * 86400
+				when :weeks, :week
+					count * 604800
+				when :fortnights, :fortnight
+					count * 1209600
+				when :months, :month
+					count * 2592000
+				when :years, :year
+					count * 31557600
+				else
+					raise ArgumentError, "don't know how to calculate seconds in a %p" % [ unit ]
+				end
 		end
 
-		### Time constants
-		module Time
+	end # module TimeFunctions
+
+
+	# Refinements to Numeric to add time-related convenience methods
+	module TimeRefinements
+		refine Numeric do
 
 			### Number of seconds (returns receiver unmodified)
 			def seconds
@@ -94,55 +118,55 @@ module Symphony
 
 			### Returns number of seconds in <receiver> minutes
 			def minutes
-				return self * 60
+				return TimeFunctions.calculate_seconds( self, :minutes )
 			end
 			alias_method :minute, :minutes
 
 			### Returns the number of seconds in <receiver> hours
 			def hours
-				return self * 60.minutes
+				return TimeFunctions.calculate_seconds( self, :hours )
 			end
 			alias_method :hour, :hours
 
 			### Returns the number of seconds in <receiver> days
 			def days
-				return self * 24.hours
+				return TimeFunctions.calculate_seconds( self, :day )
 			end
 			alias_method :day, :days
 
 			### Return the number of seconds in <receiver> weeks
 			def weeks
-				return self * 7.days
+				return TimeFunctions.calculate_seconds( self, :weeks )
 			end
 			alias_method :week, :weeks
 
 			### Returns the number of seconds in <receiver> fortnights
 			def fortnights
-				return self * 2.weeks
+				return TimeFunctions.calculate_seconds( self, :fortnights )
 			end
 			alias_method :fortnight, :fortnights
 
 			### Returns the number of seconds in <receiver> months (approximate)
 			def months
-				return self * 30.days
+				return TimeFunctions.calculate_seconds( self, :months )
 			end
 			alias_method :month, :months
 
 			### Returns the number of seconds in <receiver> years (approximate)
 			def years
-				return (self * 365.25.days).to_i
+				return TimeFunctions.calculate_seconds( self, :years )
 			end
 			alias_method :year, :years
 
 
-			### Returns the Time <receiver> number of seconds before the 
+			### Returns the Time <receiver> number of seconds before the
 			### specified +time+. E.g., 2.hours.before( header.expiration )
 			def before( time )
 				return time - self
 			end
 
 
-			### Returns the Time <receiver> number of seconds ago. (e.g., 
+			### Returns the Time <receiver> number of seconds ago. (e.g.,
 			### expiration > 2.hours.ago )
 			def ago
 				return self.before( ::Time.now )
@@ -162,7 +186,7 @@ module Symphony
 			end
 
 
-			### Return a string describing approximately the amount of time in 
+			### Return a string describing approximately the amount of time in
 			### <receiver> number of seconds.
 			def timeperiod
 				return case
@@ -189,14 +213,9 @@ module Symphony
 					end
 			end
 
-		end # module Time
-	end
+		end # refine Numeric
+	end # module TimeRefinements
 
 end # module Symphony
 
-
-### Add convenience methods to Numerics
-class Numeric
-	include Symphony::NumericConstantMethods
-end
 

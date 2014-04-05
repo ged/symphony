@@ -2,6 +2,10 @@
 
 require_relative '../helpers'
 require 'symphony/intervalexpression'
+require 'symphony/mixins'
+
+using Symphony::TimeRefinements
+
 
 #####################################################################
 ###	C O N T E X T S
