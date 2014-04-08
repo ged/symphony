@@ -1,3 +1,10 @@
+== v0.5.0 [2014-04-08] Michael Granger <ged@FaerieMUD.org>
+
+- Don't set up default signal handlers for WINCH and CHLD for Tasks.
+- Add an interval expression parsing library in preparation for
+  Symphony scheduling.
+
+
 == v0.4.0 [2014-03-28] Mahlon E. Smith <mahlon@martini.nu>
 
 Enhancement:
