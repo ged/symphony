@@ -25,7 +25,7 @@ class Symphony::Task
 
 
 	# Signal to reset to defaults for the child
-	SIGNALS = %i[ INT TERM HUP CHLD WINCH ]
+	SIGNALS = %i[ INT TERM HUP ]
 
 	# Valid work model types
 	WORK_MODELS = %i[ longlived oneshot ]
@@ -319,10 +319,6 @@ class Symphony::Task
 			self.on_interrupt
 		when :HUP
 			self.on_hangup
-		when :CHLD
-			self.on_child_exit
-		when :WINCH
-			self.on_window_size_change
 		else
 			self.log.warn "Unhandled signal %s" % [ sig ]
 		end
@@ -376,19 +372,6 @@ class Symphony::Task
 		self.log.error "Timed out while performing work"
 		raise if self.class.timeout_action == :reject
 		return false
-	end
-
-
-	### Handle a child process exiting.
-	def on_child_exit
-		self.log.info "Child exited."
-		Process.waitpid( 0, Process::WNOHANG )
-	end
-
-
-	### Handle a window size change event. No-op by default.
-	def on_window_size_change
-		self.log.info "Window size changed."
 	end
 
 
