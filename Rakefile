@@ -1,6 +1,7 @@
 #!/usr/bin/env rake
 
 require 'pathname'
+require 'rake/clean'
 
 begin
 	require 'hoe'
@@ -59,6 +60,8 @@ hoespec = Hoe.spec 'symphony' do |spec|
 	self.rdoc_locations << "deveiate:/usr/local/www/public/code/#{remote_rdoc_dir}"
 end
 
+# Fix some Hoe retardedness
+hoespec.spec.files.delete( '.gemtest' )
 ENV['VERSION'] ||= hoespec.spec.version.to_s
 
 # Run the tests before checking in
@@ -88,13 +91,14 @@ task :spec => EXPRESSION_RB
 
 # Generate a .gemspec file for integration with systems that read it
 task :gemspec => GEMSPEC
-file GEMSPEC => __FILE__ do |task|
+file GEMSPEC => hoespec.spec.files do |task|
 	spec = $hoespec.spec
-	spec.files.delete( '.gemtest' )
 	spec.version = "#{spec.version}.pre#{Time.now.strftime("%Y%m%d%H%M%S")}"
 	File.open( task.name, 'w' ) do |fh|
 		fh.write( spec.to_ruby )
 	end
 end
 task :default => :gemspec
+
+CLOBBER.include( GEMSPEC.to_s )
 
