@@ -37,8 +37,6 @@ hoespec = Hoe.spec 'symphony' do |spec|
 	spec.dependency 'rusage', '~> 0.2'
 
 	spec.dependency 'rspec', '~> 3.0', :developer
-	spec.dependency 'net-ssh', '~> 2.8', :developer
-	spec.dependency 'net-sftp', '~> 2.1', :developer
 	spec.dependency 'simplecov', '~> 0.8', :developer
 
 	spec.require_ruby_version( '>=2.0.0' )
