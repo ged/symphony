@@ -68,6 +68,7 @@ class Symphony::Task
 		subclass.instance_variable_set( :@work_model, :longlived )
 		subclass.instance_variable_set( :@prefetch, 10 )
 		subclass.instance_variable_set( :@timeout_action, :reject )
+		subclass.instance_variable_set( :@persistent, false )
 	end
 
 
@@ -185,6 +186,19 @@ class Symphony::Task
 			@prefetch = count
 		end
 		return @prefetch
+	end
+
+
+	### Create the queue the task consumes from as a persistent queue, so it
+	### will continue to receive events even if the task is no longer consuming them.
+	### This only effects queues which are not already declared, so if the
+	### bindings for the queue change you'll need to delete the existing queue
+	### before starting up to have them take effect.
+	def self::persistent( new_setting=nil )
+		if new_setting
+			@persistent = new_setting
+		end
+		return @persistent
 	end
 
 

@@ -29,7 +29,7 @@ class Symphony::Daemon
 	CONFIG_DEFAULTS = {
 		throttle_max:    16,
 		throttle_factor: 1,
-		tasks: []
+		tasks:           []
 	}
 
 	# Signals we understand
