@@ -1,3 +1,12 @@
+== v0.6.0 [2014-04-14] Michael Granger <ged@FaerieMUD.org>
+
+- Set cancel-on-failover flag in the queue consumer
+- Allow a task to declare its queue as persistant.
+- Break out SSH tasks into their own gem
+- Remove the interval expression parser; scheduling will
+  be part of an separate library if we decide to release it.
+
+
 == v0.5.0 [2014-04-08] Michael Granger <ged@FaerieMUD.org>
 
 - Don't set up default signal handlers for WINCH and CHLD for Tasks.
