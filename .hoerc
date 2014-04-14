@@ -1,2 +1,0 @@
---- 
-exclude: !ruby/regexp /tmp$|Gemfile(\.lock)?|Procfile|TAGS|tmtags|\.(hg|bowerrc|keep|hoerc|env|DS_Store|rvm(rc|\.gems)|irbrc|pryrc|tm_.*|rspec.*|rbx|travis\.yml)|(logs|coverage|benchmarks|experiments|features|tmp\w*|wiki|\w+-\d+\.\d+\.\d+)\/|\.(nzb|bundle|sqlite|ru|graffle|espressostorage|esproj|ldif|log|sublime-\w+|pid|pem|gemspec|conf|rl)$|(bower\.json|config\.yml)$/

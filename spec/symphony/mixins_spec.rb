@@ -4,7 +4,6 @@ require_relative '../helpers'
 
 require 'symphony/mixins'
 
-using Symphony::TimeRefinements
 
 describe Symphony, 'mixins' do
 

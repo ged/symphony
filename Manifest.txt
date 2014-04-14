@@ -24,7 +24,6 @@ lib/symphony/tasks/ssh.rb
 lib/symphony/tasks/sshscript.rb
 spec/helpers.rb
 spec/symphony/daemon_spec.rb
-spec/symphony/intervalexpression_spec.rb
 spec/symphony/mixins_spec.rb
 spec/symphony/queue_spec.rb
 spec/symphony/task_spec.rb
