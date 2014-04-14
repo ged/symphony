@@ -13,5 +13,3 @@ pkg/
 
 \.gemspec$
 .log$
-lib/symphony/intervalexpression.rb
-
