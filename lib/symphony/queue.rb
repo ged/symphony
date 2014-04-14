@@ -219,7 +219,8 @@ class Symphony::Queue
 		# Last argument is *no_ack*, so need to invert the logic
 		self.log.debug "Creating consumer for the '%s' queue with tag: %s" %
 			[ amqp_queue.name, tag ]
-		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode )
+		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode, false,
+			'x-cancel-on-ha-failover' => true )
 
 		cons.on_delivery do |delivery_info, properties, payload|
 			rval = self.handle_message( delivery_info, properties, payload, &work_callback )
