@@ -22,6 +22,11 @@ class Symphony::Queue
 		heartbeat:   'server',
 	}
 
+	# Arguments to use when creating the consumer
+	CONSUMER_ARGS = {
+		'x-cancel-on-ha-failover' => true,
+	}
+
 	# The default number of messages to prefetch
 	DEFAULT_PREFETCH = 10
 
@@ -219,8 +224,7 @@ class Symphony::Queue
 		# Last argument is *no_ack*, so need to invert the logic
 		self.log.debug "Creating consumer for the '%s' queue with tag: %s" %
 			[ amqp_queue.name, tag ]
-		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode, false,
-			'x-cancel-on-ha-failover' => true )
+		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode, false, CONSUMER_ARGS )
 
 		cons.on_delivery do |delivery_info, properties, payload|
 			rval = self.handle_message( delivery_info, properties, payload, &work_callback )

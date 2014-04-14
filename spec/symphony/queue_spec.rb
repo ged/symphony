@@ -160,7 +160,8 @@ describe Symphony::Queue do
 				with( Symphony::Queue::DEFAULT_PREFETCH )
 
 			expect( Bunny::Consumer ).to receive( :new ).
-				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).
+				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false, false,
+				      Symphony::Queue::CONSUMER_ARGS ).
 				and_return( consumer )
 
 			# Set up an artificial method to call the delivery callback that we can later
@@ -211,7 +212,8 @@ describe Symphony::Queue do
 			expect( described_class.amqp_channel ).to receive( :prefetch ).with( 1 )
 
 			expect( Bunny::Consumer ).to receive( :new ).
-				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).
+				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false, false,
+				      Symphony::Queue::CONSUMER_ARGS ).
 				and_return( consumer )
 
 			expect( consumer ).to receive( :on_delivery ) do |&block|
@@ -253,7 +255,8 @@ describe Symphony::Queue do
 				with( Symphony::Queue::DEFAULT_PREFETCH )
 
 			expect( Bunny::Consumer ).to receive( :new ).
-				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false ).
+				with( described_class.amqp_channel, amqp_queue, queue.consumer_tag, false, false,
+				      Symphony::Queue::CONSUMER_ARGS ).
 				and_return( consumer )
 
 			expect( consumer ).to receive( :on_delivery )
@@ -282,7 +285,8 @@ describe Symphony::Queue do
 
 			# Ackmode argument is actually 'no_ack'
 			expect( Bunny::Consumer ).to receive( :new ).
-				with( amqp_channel, amqp_queue, queue.consumer_tag, false ).
+				with( amqp_channel, amqp_queue, queue.consumer_tag, false, false,
+				      Symphony::Queue::CONSUMER_ARGS ).
 				and_return( consumer )
 			expect( consumer ).to receive( :on_delivery )
 			expect( consumer ).to receive( :on_cancellation )
@@ -299,7 +303,8 @@ describe Symphony::Queue do
 			# Ackmode argument is actually 'no_ack'
 			queue.instance_variable_set( :@acknowledge, false )
 			expect( Bunny::Consumer ).to receive( :new ).
-				with( amqp_channel, amqp_queue, queue.consumer_tag, true ).
+				with( amqp_channel, amqp_queue, queue.consumer_tag, true, false,
+				      Symphony::Queue::CONSUMER_ARGS ).
 				and_return( consumer )
 			expect( consumer ).to receive( :on_delivery )
 			expect( consumer ).to receive( :on_cancellation )
