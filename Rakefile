@@ -1,22 +1,12 @@
 #!/usr/bin/env rake
 
-require 'pathname'
-
 begin
 	require 'hoe'
 rescue LoadError
 	abort "This Rakefile requires hoe (gem install hoe)"
 end
 
-
-BASEDIR         = Pathname( __FILE__ ).dirname.relative_path_from( Pathname.pwd )
-
-LIBDIR          = BASEDIR + 'lib'
-SYMPHONY_LIBDIR = LIBDIR + 'symphony'
-
-GEMSPEC         = BASEDIR + 'symphony.gemspec'
-EXPRESSION_RL   = SYMPHONY_LIBDIR + 'intervalexpression.rl'
-EXPRESSION_RB   = SYMPHONY_LIBDIR + 'intervalexpression.rb'
+GEMSPEC = 'symphony.gemspec'
 
 
 Hoe.plugin :mercurial
@@ -53,8 +43,6 @@ hoespec = Hoe.spec 'symphony' do |spec|
 
 	spec.require_ruby_version( '>=2.0.0' )
 	spec.hg_sign_tags = true if spec.respond_to?( :hg_sign_tags= )
-	spec.quality_check_whitelist.include( EXPRESSION_RB.to_s ) if
-		spec.respond_to?( :quality_check_whitelist )
 
 	self.rdoc_locations << "deveiate:/usr/local/www/public/code/#{remote_rdoc_dir}"
 end
@@ -64,11 +52,9 @@ ENV['VERSION'] ||= hoespec.spec.version.to_s
 # Run the tests before checking in
 task 'hg:precheckin' => [ :check_history, :check_manifest, :spec ]
 
-
 # Rebuild the ChangeLog immediately before release
 task :prerelease => 'ChangeLog'
 CLOBBER.include( 'ChangeLog' )
-
 
 desc "Build a coverage report"
 task :coverage do
@@ -77,16 +63,6 @@ task :coverage do
 end
 
 
-# Generate the expression parser with Ragel
-file EXPRESSION_RL
-file EXPRESSION_RB
-task EXPRESSION_RB => EXPRESSION_RL do |task|
-	 sh 'ragel', '-R', '-T1', '-Ls', task.prerequisites.first
-end
-task :spec => EXPRESSION_RB
-
-
-# Generate a .gemspec file for integration with systems that read it
 task :gemspec => GEMSPEC
 file GEMSPEC => __FILE__ do |task|
 	spec = $hoespec.spec
@@ -96,5 +72,6 @@ file GEMSPEC => __FILE__ do |task|
 		fh.write( spec.to_ruby )
 	end
 end
+
 task :default => :gemspec
 
