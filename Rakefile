@@ -47,6 +47,8 @@ hoespec = Hoe.spec 'symphony' do |spec|
 	self.rdoc_locations << "deveiate:/usr/local/www/public/code/#{remote_rdoc_dir}"
 end
 
+# Fix some Hoe retardedness
+hoespec.spec.files.delete( '.gemtest' )
 ENV['VERSION'] ||= hoespec.spec.version.to_s
 
 # Run the tests before checking in
@@ -64,9 +66,8 @@ end
 
 
 task :gemspec => GEMSPEC
-file GEMSPEC => __FILE__ do |task|
+file GEMSPEC => hoespec.spec.files do |task|
 	spec = $hoespec.spec
-	spec.files.delete( '.gemtest' )
 	spec.version = "#{spec.version}.pre#{Time.now.strftime("%Y%m%d%H%M%S")}"
 	File.open( task.name, 'w' ) do |fh|
 		fh.write( spec.to_ruby )
@@ -74,4 +75,6 @@ file GEMSPEC => __FILE__ do |task|
 end
 
 task :default => :gemspec
+
+CLOBBER.include( GEMSPEC.to_s )
 

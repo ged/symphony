@@ -139,7 +139,8 @@ class Symphony::Queue
 			task_class.acknowledge,
 			task_class.consumer_tag,
 			task_class.routing_keys,
-			task_class.prefetch
+			task_class.prefetch,
+			task_class.persistent
 		]
 		return new( *args )
 	end
@@ -147,12 +148,13 @@ class Symphony::Queue
 
 
 	### Create a new Queue with the specified configuration.
-	def initialize( name, acknowledge, consumer_tag, routing_keys, prefetch )
+	def initialize( name, acknowledge, consumer_tag, routing_keys, prefetch, persistent )
 		@name          = name
 		@acknowledge   = acknowledge
 		@consumer_tag  = consumer_tag
 		@routing_keys  = routing_keys
 		@prefetch      = prefetch
+		@persistent    = persistent
 
 		@amqp_queue    = nil
 		@shutting_down = false
@@ -177,6 +179,12 @@ class Symphony::Queue
 
 	# The maximum number of un-acked messages to prefetch
 	attr_reader :prefetch
+
+	# Whether or not to create a persistent queue
+	attr_reader :persistent
+
+	# The underlying Bunny::Queue this object manages
+	attr_reader :amqp_queue
 
 	# The Bunny::Consumer that is dispatching messages for the queue.
 	attr_accessor :consumer
@@ -244,7 +252,7 @@ class Symphony::Queue
 			channel = self.class.reset_amqp_channel
 			channel.prefetch( prefetch_count )
 
-			queue = channel.queue( self.name, auto_delete: true )
+			queue = channel.queue( self.name, auto_delete: !self.persistent )
 			self.routing_keys.each do |key|
 				self.log.info "  binding queue %s to the %s exchange with topic key: %s" %
 					[ self.name, exchange.name, key ]
