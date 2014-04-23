@@ -108,5 +108,12 @@ module Symphony::SignalHandling
 	end
 
 
+	### Simulate the receipt of the specified +signal+ (probably only useful
+	### in testing).
+	def simulate_signal( signal )
+		Thread.main[:signal_queue] << signal.to_sym
+		self.wake_up
+	end
+
 end # module Symphony::SignalHandling
 

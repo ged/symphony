@@ -113,9 +113,6 @@ class Symphony::Daemon
 
 	### Create a new Daemon instance.
 	def initialize
-		# Process control
-		@tasks               = self.class.tasks
-
 		@running_tasks       = {}
 		@running             = false
 		@shutting_down       = false
@@ -141,6 +138,10 @@ class Symphony::Daemon
 
 	# The Configurability::Config object for the current configuration.
 	attr_reader :config
+
+
+	# Make a delegator for the class's task list
+	define_method( :tasks, &self.method(:tasks) )
 
 
 	### Returns +true+ if the daemon is still running.
@@ -236,7 +237,7 @@ class Symphony::Daemon
 	def handle_signal( sig )
 		self.log.debug "Handling signal %s in PID %d" % [ sig, Process.pid ]
 		case sig
-		when :INT, :TERM
+		when :INT, :TERM, :QUIT
 			if @running
 				self.log.warn "%s signal: graceful shutdown" % [ sig ]
 				@running = false
