@@ -51,6 +51,13 @@ class Symphony::Task
 	end
 
 
+	### Prepare the process to be forked.
+	def self::before_fork
+		self.log.debug "Before fork [%d]: Threads: %p" % [ Process.pid, ThreadGroup::Default.list ]
+		# No-op
+	end
+
+
 	### Prepare the process after being forked from the Daemon.
 	def self::after_fork
 		self.log.debug "After fork [%d]: Threads: %p" % [ Process.pid, ThreadGroup::Default.list ]
