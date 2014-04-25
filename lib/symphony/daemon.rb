@@ -339,6 +339,7 @@ class Symphony::Daemon
 		return if self.shutting_down?
 
 		self.log.debug "Starting a %p." % [ task_class ]
+		task_class.before_fork
 		pid = Process.fork do
 			task_class.after_fork
 			task_class.run
