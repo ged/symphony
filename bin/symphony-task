@@ -3,8 +3,11 @@
 require 'symphony'
 require 'symphony/task'
 
-taskname = ARGV.shift or raise "no task name given"
+taskname = ARGV.shift
+config   = ARGV.shift || ENV['SYMPHONY_CONFIG']
 
-Symphony.load_config( 'etc/config.yml' )
+abort "symphony-task taskname [config.yml]" unless taskname && config
+
+Symphony.load_config( config )
 Symphony::Task.get_subclass( taskname ).run
 
