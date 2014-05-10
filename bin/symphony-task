@@ -4,9 +4,9 @@ require 'symphony'
 require 'symphony/task'
 
 taskname = ARGV.shift
-config   = ARGV.shift || ENV['SYMPHONY_CONFIG']
+config   = ARGV.shift
 
-abort "symphony-task taskname [config.yml]" unless taskname && config
+abort "symphony-task taskname [config.yml]" unless taskname
 
 Symphony.load_config( config )
 Symphony::Task.get_subclass( taskname ).run
