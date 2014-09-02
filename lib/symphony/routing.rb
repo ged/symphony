@@ -18,8 +18,9 @@ module Symphony::Routing
 		super
 		mod.extend( Symphony::MethodUtilities )
 		mod.extend( Symphony::Routing::ClassMethods )
-		mod.singleton_attr_accessor( :routes )
+		mod.singleton_attr_accessor( :routes, :route_options )
 		mod.routes = Hash.new {|h,k| h[k] = [] }
+		mod.route_options = Hash.new {|h,k| h[k] = {} }
 	end
 
 
@@ -29,12 +30,15 @@ module Symphony::Routing
 		### Register an event pattern and a block to execute when an event
 		### matching that pattern is received.
 		def on( *route_patterns, &block )
+			raise LocalJumpError, "no block given" unless block
+			options = route_patterns.pop if route_patterns.last.is_a?( Hash )
 			route_patterns.each do |pattern|
 				methodobj = self.make_handler_method( pattern, &block )
 				self.routing_keys << pattern
 
 				pattern_re = self.make_routing_pattern( pattern )
 				self.routes[ pattern_re ] << methodobj
+				self.route_options[ pattern ].merge!( options ) if options
 			end
 		end
 
@@ -81,10 +85,7 @@ module Symphony::Routing
 		key = metadata[:delivery_info].routing_key
 		self.log.debug "Routing a %s message..." % [ key ]
 
-		blocks = self.class.routes.inject([]) do |accum, (re, re_blocks)|
-			accum += re_blocks if re.match( key )
-			accum
-		end
+		blocks = self.find_matching_blocks( key )
 
 		self.log.debug "  calling %d block/s" % [ blocks.length ]
 		return blocks.all? do |block|
@@ -92,6 +93,14 @@ module Symphony::Routing
 		end
 	end
 
+
+	### Return routing block whose patterns match the specified +key+.
+	def find_matching_blocks( key )
+		return self.class.routes.inject([]) do |accum, (re, re_blocks)|
+			accum += re_blocks if re.match( key )
+			accum
+		end
+	end
 
 end # module Symphony::Routing
 
