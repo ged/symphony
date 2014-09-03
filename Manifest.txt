@@ -24,5 +24,6 @@ spec/helpers.rb
 spec/symphony/daemon_spec.rb
 spec/symphony/mixins_spec.rb
 spec/symphony/queue_spec.rb
+spec/symphony/routing_spec.rb
 spec/symphony/task_spec.rb
 spec/symphony_spec.rb
