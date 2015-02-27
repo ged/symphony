@@ -30,6 +30,14 @@ class Symphony::Task
 	# Valid work model types
 	WORK_MODELS = %i[ longlived oneshot ]
 
+	# The number of seconds between checks to see if the worker is idle. Note that
+	# this is not the same as the idle timeout -- it's how often to check to see if
+	# the task has been idle for too long.
+	IDLE_CHECK_INTERVAL = 5 # seconds
+
+	# The default number of seconds to wait for work
+	DEFAULT_IDLE_TIMEOUT = IDLE_CHECK_INTERVAL * 2
+
 
 	# Loggability API -- log to symphony's logger
 	log_to :symphony
@@ -41,20 +49,20 @@ class Symphony::Task
 
 	### Create a new Task object and listen for work. Exits with the code returned
 	### by #start when it's done.
-	def self::run
+	def self::run( exit_on_idle=false )
 		if self.subscribe_to.empty?
 			raise ScriptError,
 				"No subscriptions defined. Add one or more patterns using subscribe_to."
 		end
 
-		exit self.new( self.queue ).start
+		exit self.new( self.queue, exit_on_idle ).start
 	end
 
 
 	### Prepare the process to be forked.
 	def self::before_fork
 		self.log.debug "Before fork [%d]: Threads: %p" % [ Process.pid, ThreadGroup::Default.list ]
-		# No-op
+		Symphony::Queue.reset
 	end
 
 
@@ -76,6 +84,7 @@ class Symphony::Task
 		subclass.instance_variable_set( :@prefetch, 10 )
 		subclass.instance_variable_set( :@timeout_action, :reject )
 		subclass.instance_variable_set( :@persistent, false )
+		subclass.instance_variable_set( :@idle_timeout, DEFAULT_IDLE_TIMEOUT )
 	end
 
 
@@ -209,16 +218,33 @@ class Symphony::Task
 	end
 
 
+	### Get/set the maximum number of seconds the worker should wait for events to
+	### arrive before exiting.
+	def self::idle_timeout( seconds=nil, options={} )
+		unless seconds.nil?
+			self.log.info "Setting the idle timeout to %0.2fs." % [ seconds.to_f ]
+			@idle_timeout = seconds.to_f
+		end
+
+		return @idle_timeout
+	end
+
+
+
+
 	#
 	# Instance Methods
 	#
 
 	### Create a worker that will listen on the specified +queue+ for a job.
-	def initialize( queue )
+	def initialize( queue, exit_on_idle=false )
 		@queue          = queue
 		@signal_handler = nil
 		@shutting_down  = false
 		@restarting     = false
+		@idle_checker   = nil
+		@last_worked    = Time.now
+		@exit_on_idle   = exit_on_idle
 	end
 
 
@@ -239,6 +265,15 @@ class Symphony::Task
 	# Is the task in the process of restarting?
 	attr_predicate_accessor :restarting
 
+	# The Thread that checks for idle timeout
+	attr_accessor :idle_checker
+
+	# The Time the task was last running
+	attr_accessor :last_worked
+
+	# Flag that determines whether this task instance exits when it doesn't have any work.
+	attr_predicate :exit_on_idle
+
 
 	### Set up the task and start handling messages.
 	def start
@@ -254,7 +289,7 @@ class Symphony::Task
 		return rval ? 0 : 1
 
 	rescue Exception => err
-		self.log.fatal "%p in %p: %s" % [ err.class, self.class, err.message ]
+		self.log.fatal "%p in %p: %s: %s" % [ err.class, self.class, err.message, err.backtrace.first ]
 		self.log.debug { '  ' + err.backtrace.join("  \n") }
 
 		return :software
@@ -299,26 +334,51 @@ class Symphony::Task
 	def start_handling_messages
 		oneshot = self.class.work_model == :oneshot
 
-		return self.queue.wait_for_message( oneshot ) do |payload, metadata|
+		rval = nil
+		self.queue.wait_for_message( oneshot ) do |payload, metadata|
+			self.last_worked = nil
 			work_payload = self.preprocess_payload( payload, metadata )
 
-			if self.class.timeout
+			rval = if self.class.timeout
 				self.work_with_timeout( work_payload, metadata )
 			else
 				self.work( work_payload, metadata )
 			end
-		end
+
+			self.last_worked = Time.now
+	end
+
+		return rval
 	end
 
 
-	### Start the thread that will deliver signals once they're put on the queue.
+	### Start the thread that will deliver signals once they're put on the queue, and
+	### check for the last time a job was handled by this task process.
 	def start_signal_handler
 		@signal_handler = Thread.new do
 			Thread.current.abort_on_exception = true
 			loop do
-				self.log.debug "Signal handler: waiting for new signals in the queue."
-				self.wait_for_signals
+				# self.log.debug "Signal handler: waiting for new signals in the queue."
+				self.wait_for_signals( IDLE_CHECK_INTERVAL )
+				self.check_for_idle_timeout
 			end
+		end
+	rescue => err
+		self.log.fatal "Signal handler thread crashed: %p: %s" % [ err.class, err.message ]
+		self.stop_immediately
+	end
+
+
+	### Check to see if the last run was more than #idle_timeout seconds ago,
+	### and cancelling the task's consumer if so.
+	def check_for_idle_timeout
+
+		# If it's unset, it means it's running now
+		return unless self.last_worked && self.exit_on_idle?
+
+		if (Time.now - self.last_worked) > self.class.idle_timeout
+			self.log.debug "Sending stop signal due to idle timeout"
+			self.stop_gracefully
 		end
 	end
 

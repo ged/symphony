@@ -131,6 +131,7 @@ class Symphony::Queue
 	### Fetch the configured AMQP exchange interface object.
 	def self::amqp_exchange
 		unless self.amqp[:exchange]
+			self.log.info "Getting a reference to the %s topic exchange" % [ self.exchange ]
 			self.amqp[:exchange] = self.amqp_channel.topic( self.exchange, passive: true )
 		end
 		return self.amqp[:exchange]
@@ -315,7 +316,7 @@ class Symphony::Queue
 	### Close the AMQP session associated with this queue.
 	def shutdown
 		self.shutting_down = true
-		self.consumer.cancel
+		self.consumer.cancel if self.consumer
 	end
 
 

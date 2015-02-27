@@ -7,13 +7,12 @@ require 'loggability'
 require 'symphony' unless defined?( Symphony )
 require 'symphony/task'
 require 'symphony/signal_handling'
+require 'symphony/task_group'
 
 # A daemon which manages startup and shutdown of one or more Workers
 # running Tasks as they are published from a queue.
 class Symphony::Daemon
-	extend Loggability,
-	       Configurability,
-	       Symphony::MethodUtilities
+	extend Loggability
 
 	include Symphony::SignalHandling
 
@@ -21,16 +20,6 @@ class Symphony::Daemon
 	# Loggability API -- log to the symphony logger
 	log_to :symphony
 
-	# Configurability API -- use the 'worker_daemon' section of the config
-	config_key :symphony
-
-
-	# Default configuration
-	CONFIG_DEFAULTS = {
-		throttle_max:    16,
-		throttle_factor: 1,
-		tasks:           []
-	}
 
 	# Signals we understand
 	QUEUE_SIGS = [
@@ -39,24 +28,9 @@ class Symphony::Daemon
 	]
 
 
-
 	#
 	# Class methods
 	#
-
-	##
-	# The maximum throttle factor caused by failing workers
-	singleton_attr_accessor :throttle_max
-
-	##
-	# The factor which controls how much incrementing the throttle factor
-	# affects the pause between workers being started.
-	singleton_attr_accessor :throttle_factor
-
-	##
-	# The Array of Symphony::Task classes that are configured to run
-	singleton_attr_accessor :tasks
-
 
 	### Get the daemon's version as a String.
 	def self::version_string( include_buildnum=false )
@@ -66,26 +40,6 @@ class Symphony::Daemon
 			vstring << " (build %s)" % [ rev ]
 		end
 		return vstring
-	end
-
-
-	### Configurability API -- configure the daemon.
-	def self::configure( config=nil )
-		config = self.defaults.merge( config || {} )
-
-		self.throttle_max    = config[:throttle_max]
-		self.throttle_factor = config[:throttle_factor]
-
-		self.tasks = self.load_configured_tasks( config[:tasks] )
-	end
-
-
-	### Load the tasks with the specified +task_names+ and return them
-	### as an Array.
-	def self::load_configured_tasks( task_names )
-		return task_names.map do |task_name|
-			Symphony::Task.get_subclass( task_name )
-		end
 	end
 
 
@@ -113,11 +67,9 @@ class Symphony::Daemon
 
 	### Create a new Daemon instance.
 	def initialize
-		@running_tasks       = {}
+		@task_pids   = {}
+		@task_groups = {}
 		@running             = false
-		@shutting_down       = false
-		@throttle            = 0
-		@last_child_started  = Time.now
 
 		self.set_up_signal_handling
 	end
@@ -127,8 +79,11 @@ class Symphony::Daemon
 	public
 	######
 
-	# The Hash of PIDs to task class
-	attr_reader :running_tasks
+	# The Hash of PID to task group
+	attr_reader :task_pids
+
+	# The Array of running task groups
+	attr_reader :task_groups
 
 	# A self-pipe for deferred signal-handling
 	attr_reader :selfpipe
@@ -136,23 +91,10 @@ class Symphony::Daemon
 	# The Symphony::Queue that jobs will be fetched from
 	attr_reader :queue
 
-	# The Configurability::Config object for the current configuration.
-	attr_reader :config
-
-
-	# Make a delegator for the class's task list
-	define_method( :tasks, &self.method(:tasks) )
-
 
 	### Returns +true+ if the daemon is still running.
 	def running?
 		return @running
-	end
-
-
-	### Returns +true+ if the daemon is shutting down.
-	def shutting_down?
-		return @shutting_down
 	end
 
 
@@ -168,8 +110,6 @@ class Symphony::Daemon
 
 		# Restore the default signal handlers
 		self.reset_signal_traps( *QUEUE_SIGS )
-
-		exit
 	end
 
 
@@ -177,12 +117,14 @@ class Symphony::Daemon
 	### take appropriate action.
 	def run_tasks
 		@running = true
+		self.create_task_groups
 
 		self.log.debug "Starting supervisor loop..."
 		while self.running?
-			self.start_missing_children unless self.shutting_down?
-			self.wait_for_signals
+			self.tickle_task_groups
+			if self.wait_for_signals( Symphony.scaling_interval )
 			self.reap_children
+		end
 		end
 
 	rescue => err
@@ -191,7 +133,6 @@ class Symphony::Daemon
 
 	ensure
 		self.log.info "Done running tasks."
-		@running = false
 		self.stop
 	end
 
@@ -199,7 +140,7 @@ class Symphony::Daemon
 	### Shut the daemon down gracefully.
 	def stop
 		self.log.warn "Stopping."
-		@shutting_down = true
+		@running = false
 
 		self.ignore_signals( *QUEUE_SIGS )
 
@@ -209,14 +150,14 @@ class Symphony::Daemon
 			sleep( 1 )
 			self.kill_children
 			sleep( 1 )
-			break if self.running_tasks.empty?
+			break if self.task_pids.empty?
 			sleep( 1 )
-		end unless self.running_tasks.empty?
+		end unless self.task_pids.empty?
 
 		# Give up on our remaining children.
 		Signal.trap( :CHLD, :IGNORE )
-		if !self.running_tasks.empty?
-			self.log.warn "  %d workers remain: sending KILL" % [ self.running_tasks.length ]
+		if !self.task_pids.empty?
+			self.log.warn "  %d workers remain: sending KILL" % [ self.task_pids.length ]
 			self.kill_children( :KILL )
 		end
 	end
@@ -224,8 +165,11 @@ class Symphony::Daemon
 
 	### Reload the configuration.
 	def reload_config
-		self.log.warn "Reloading config %p" % [ self.config ]
-		self.config.reload
+		self.log.warn "Reloading config %p" % [ Symphony.config ]
+		Symphony.config.reload
+
+		# And start them up again using the new config.
+		self.create_task_groups
 	end
 
 
@@ -263,90 +207,87 @@ class Symphony::Daemon
 	end
 
 
-	### Start any tasks which aren't already running
-	def start_missing_children
-		missing_tasks = self.find_missing_tasks
-		return if missing_tasks.empty?
+	### Create task groups for each configured task.
+	def create_task_groups
+		old_task_groups = @task_groups || {}
+		@task_groups = {}
 
-		# Return unless the throttle period has lapsed
-		unless self.throttle_seconds < (Time.now - @last_child_started)
-			self.log.info "Not starting children: throttled for %0.2f seconds" %
-				[ self.throttle_seconds ]
-			return
-		end
+		self.log.debug "Managing task groups: %p" % [ old_task_groups ]
 
-		self.log.debug "Starting %d tasks out of %d" % [ missing_tasks.size, self.class.tasks.size ]
-		missing_tasks.each do |task_class|
-			pid = self.start_worker( task_class )
-			self.log.debug "  started task %p at pid %d" % [ task_class, pid ]
-			self.running_tasks[ pid ] = task_class
-		end
+		Symphony.tasks.each do |task_class, max|
+			# If the task is still configured, restart all of its workers
+			if group = old_task_groups.delete( task_class )
+				self.log.info "%p still configured; restarting its task group." % [ task_class ]
+				self.restart_task_group( group, task_class, max )
+				@task_groups[ task_class ] = group
 
-		@last_child_started = Time.now
-	end
-
-
-	### Examine the running tasks and return any that are missing.
-	def find_missing_tasks
-		missing_tasks = []
-
-		self.class.tasks.uniq.each do |task_type|
-			count = self.class.tasks.count( task_type )
-			missing = count - self.running_tasks.values.count( task_type )
-			missing.times do
-				missing_tasks << task_type
+			# If it's new, just start it up
+			else
+				self.log.info "Starting up new task group for %p" % [ task_class ]
+				@task_groups[ task_class ] = self.start_task_group( task_class, max )
 			end
 		end
 
-		return missing_tasks
+		# Any task classes remaining are no longer configured, so stop them.
+		old_task_groups.each do |task_class, group|
+			self.log.info "%p no longer configured; stopping its task group." % [ task_class ]
+			self.stop_task_group( group )
+		end
+		end
+
+
+	### Start a new task group for the given +task_class+ and +max+ number of workers.
+	def start_task_group( task_class, max )
+		self.log.info "Starting a task group for %p" % [ task_class ]
+		Symphony::TaskGroup.create( task_class.work_model, task_class, max )
 	end
 
 
-	### Return the number of seconds between child startup times.
-	def throttle_seconds
-		return 0 unless @throttle.nonzero?
-		return Math.log( @throttle ) * self.class.throttle_factor
+	### Tell the specified task +group+ to restart with the specified +max+ number of workers.
+	def restart_task_group( group, task_class, max )
+		self.log.info "Restarting task group for %p" % [ task_class ]
+		group.max_workers = max
+		group.restart_workers
+		end
+
+
+	### Shut down the workers for the specified task group.
+	def stop_task_group( group )
+		self.log.info "Shutting down the task group for %p" % [ group.task_class ]
+		group.stop_all_workers
 	end
 
 
-	### Add +adjustment+ to the throttle value, ensuring that it doesn't go
-	### below zero.
-	def adjust_throttle( adjustment=1 )
-		self.log.debug "Adjusting worker throttle by %d" % [ adjustment ]
-		@throttle += adjustment
-		@throttle = 0 if @throttle < 0
-		@throttle = self.class.throttle_max if @throttle > self.class.throttle_max
+	### Tell the task groups to start or stop children based on their work model.
+	def tickle_task_groups
+		self.task_groups.each do |task_class, group|
+			new_pids = group.adjust_workers or next
+			new_pids.each do |pid|
+				self.task_pids[ pid ] = group
+	end
+		end
 	end
 
 
 	### Kill all current children with the specified +signal+. Returns +true+ if the signal was
 	### sent to one or more children.
 	def kill_children( signal=:TERM )
-		return false if self.running_tasks.empty?
+		return false if self.task_pids.empty?
 
 		self.log.info "Sending %s signal to %d task pids: %p." %
-			 [ signal, self.running_tasks.length, self.running_tasks.keys ]
-		Process.kill( signal, *self.running_tasks.keys )
+			 [ signal, self.task_pids.length, self.task_pids.keys ]
+		self.task_pids.keys.each do |pid|
+			begin
+				Process.kill( signal, pid )
+			rescue Errno::ESRCH => err
+				self.log.error "%p when trying to %s child %d: %s" %
+					[ err.class, signal, pid, err.message ]
+			end
+		end
 
 		return true
 	rescue Errno::ESRCH
 		self.log.debug "Ignoring signals to unreaped children."
-	end
-
-
-	### Start a new Symphony::Task and return its PID.
-	def start_worker( task_class )
-		return if self.shutting_down?
-
-		self.log.debug "Starting a %p." % [ task_class ]
-		task_class.before_fork
-		pid = Process.fork do
-			task_class.after_fork
-			task_class.run
-		end
-		Process.setpgid( pid, 0 )
-
-		return pid
 	end
 
 
@@ -362,7 +303,7 @@ class Symphony::Daemon
 				self.reap_specific_child( pid )
 			end
 		end
-	rescue Errno::ECHILD => err
+	rescue Errno::ECHILD
 		self.log.debug "No more children to reap."
 	end
 
@@ -375,9 +316,8 @@ class Symphony::Daemon
 		pid, status = Process.waitpid2( -1, Process::WNOHANG|Process::WUNTRACED )
 		self.log.debug "  waitpid2 returned: [ %p, %p ]" % [ pid, status ]
 		while pid
-			self.adjust_throttle( status.success? ? -1 : 1 )
-			self.log.debug "Child %d exited: %p." % [ pid, status ]
-			self.running_tasks.delete( pid )
+			self.notify_group( pid, status )
+			self.task_pids.delete( pid )
 
 			pid, status = Process.waitpid2( -1, Process::WNOHANG|Process::WUNTRACED )
 			self.log.debug "  waitpid2 returned: [ %p, %p ]" % [ pid, status ]
@@ -388,15 +328,22 @@ class Symphony::Daemon
 	### Wait on the child associated with the given +pid+, deleting it from the
 	### running tasks Hash if successful.
 	def reap_specific_child( pid )
-		spid, status = Process.waitpid2( pid )
-		if spid
-			self.log.debug "Child %d exited: %p." % [ spid, status ]
-			self.running_tasks.delete( spid )
-			self.adjust_throttle( status.success? ? -1 : 1 )
+		pid, status = Process.waitpid2( pid )
+		if pid
+			self.notify_group( pid, status )
+			self.task_pids.delete( pid )
 		else
 			self.log.debug "Child %d no reapy." % [ pid ]
 		end
 	end
 
+
+	### Notify the task group the specified +pid+ belongs to that its child exited
+	### with the specified +status+.
+	def notify_group( pid, status )
+		return unless self.running?
+		group = self.task_pids[ pid ]
+		group.on_child_exit( pid, status )
+	end
 
 end # class Symphony::Daemon

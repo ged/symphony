@@ -22,10 +22,6 @@ else
 	fi
 fi
 
-filename=".rvm.gems"
-if [[ -s "$filename" ]]; then
-	rvm gemset import "$filename"
-fi
 
 
 
