@@ -15,6 +15,7 @@ lib/symphony/mixins.rb
 lib/symphony/queue.rb
 lib/symphony/routing.rb
 lib/symphony/signal_handling.rb
+lib/symphony/statistics.rb
 lib/symphony/task.rb
 lib/symphony/task_group.rb
 lib/symphony/task_group/longlived.rb
@@ -27,9 +28,10 @@ spec/helpers.rb
 spec/symphony/daemon_spec.rb
 spec/symphony/mixins_spec.rb
 spec/symphony/queue_spec.rb
+spec/symphony/routing_spec.rb
+spec/symphony/statistics_spec.rb
 spec/symphony/task_group/longlived_spec.rb
 spec/symphony/task_group/oneshot_spec.rb
 spec/symphony/task_group_spec.rb
-spec/symphony/routing_spec.rb
 spec/symphony/task_spec.rb
 spec/symphony_spec.rb
