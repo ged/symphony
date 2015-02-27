@@ -8,6 +8,10 @@ require 'symphony' unless defined?( Symphony )
 require 'symphony/mixins'
 
 
+Bunny.extend( Loggability )
+Bunny.log_as( :amqp )
+
+
 # An object class that encapsulates queueing logic for Symphony jobs.
 class Symphony::Queue
 	extend Loggability,
@@ -66,7 +70,7 @@ class Symphony::Queue
 	### Fetch a Hash of AMQP options.
 	def self::amqp_session_options
 		opts = self.session_opts.merge({
-			logger: Loggability[ Symphony ],
+			logger: Loggability[ Bunny ],
 		})
 		opts[:heartbeat] = opts[:heartbeat].to_sym if opts[:heartbeat].is_a?( String )
 
