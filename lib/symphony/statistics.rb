@@ -57,7 +57,7 @@ module Symphony::Statistics
 	### not handling the incoming work.
 	def calculate_trend
 		return 0 unless self.samples.size >= self.sample_size
-		Loggability[ Symphony ].debug "%d samples of required %d" % [ self.samples.size, self.sample_size ]
+		# Loggability[ Symphony ].debug "%d samples of required %d" % [ self.samples.size, self.sample_size ]
 
 		x_vec, y_vec = self.samples.transpose
 
@@ -87,7 +87,7 @@ module Symphony::Statistics
 
 		stde = Math.sqrt( (r / ( samples.size - 2 )) / s )
 
-		Loggability[ Symphony ].debug "  job sampling trend is: %f" %  [ slope / stde ]
+		# Loggability[ Symphony ].debug "  job sampling trend is: %f" %  [ slope / stde ]
 		return slope / stde
 	end
 
