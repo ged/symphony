@@ -281,12 +281,14 @@ class Symphony::Queue
 
 	# Re-raise errors from AMQP
 	rescue Bunny::Exception => err
-		self.log.error "%p while handling a message: %s" % [ err.class, err.message ]
+		self.log.error "%p while handling a message: %s %s" %
+			[ err.class, err.message, err.backtrace.first ]
 		self.log.debug "  " + err.backtrace.join( "\n  " )
 		raise
 
 	rescue => err
-		self.log.error "%p while handling a message: %s" % [ err.class, err.message ]
+		self.log.error "%p while handling a message: %s %s" %
+			[ err.class, err.message, err.backtrace.first ]
 		self.log.debug "  " + err.backtrace.join( "\n  " )
 		return self.ack_message( delivery_info.delivery_tag, false, false )
 	end
