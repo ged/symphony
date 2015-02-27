@@ -45,13 +45,12 @@ module Symphony::SignalHandling
 	def wait_for_signals( timeout=nil )
 
 		# Wait on the selfpipe for signals
-		self.log.debug "  waiting for the selfpipe"
+		# self.log.debug "  waiting for the selfpipe"
 		fds = IO.select( [@selfpipe[:reader]], [], [], timeout )
 		begin
 			rval = @selfpipe[:reader].read_nonblock( 11 )
 			self.log.debug "    read from the selfpipe: %p" % [ rval ]
 		rescue Errno::EAGAIN, Errno::EINTR => err
-			self.log.debug "    %p: %s!" % [ err.class, err.message ]
 			# ignore
 		end
 

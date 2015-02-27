@@ -10,6 +10,7 @@ describe Symphony do
 
 	before( :each ) do
 		ENV.delete( 'SYMPHONY_CONFIG' )
+		Symphony.configure( tasks: ['test', 'test'] )
 	end
 
 
@@ -63,6 +64,11 @@ describe Symphony do
 		expect( config_object ).to receive( :install )
 
 		described_class.load_config( 'a/different/configfile.yml', database: {dbname: 'test'} )
+	end
+
+	it "loads a task class for each configured task" do
+		expect( Symphony.tasks.size ).to eq( 1 )
+		expect( Symphony.tasks ).to include( Symphony::SpecHelpers::TestTask )
 	end
 
 end
