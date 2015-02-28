@@ -4,6 +4,7 @@ History.rdoc
 Manifest.txt
 README.rdoc
 Rakefile
+UPGRADING.md
 USAGE.rdoc
 bin/symphony
 bin/symphony-task

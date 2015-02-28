@@ -12,7 +12,6 @@ GEMSPEC = 'symphony.gemspec'
 Hoe.plugin :mercurial
 Hoe.plugin :signing
 Hoe.plugin :deveiate
-Hoe.plugin :bundler
 
 Hoe.plugins.delete :rubyforge
 
@@ -52,7 +51,7 @@ hoespec.spec.files.delete( '.gemtest' )
 ENV['VERSION'] ||= hoespec.spec.version.to_s
 
 # Run the tests before checking in
-task 'hg:precheckin' => [ :check_history, :check_manifest, :spec ]
+task 'hg:precheckin' => [ :check_history, :check_manifest, :gemspec, :spec ]
 
 # Rebuild the ChangeLog immediately before release
 task :prerelease => 'ChangeLog'
@@ -68,7 +67,7 @@ end
 task :gemspec => GEMSPEC
 file GEMSPEC => hoespec.spec.files do |task|
 	spec = $hoespec.spec
-	spec.version = "#{spec.version}.pre#{Time.now.strftime("%Y%m%d%H%M%S")}"
+	spec.version = "#{spec.version.bump}.0.pre#{Time.now.strftime("%Y%m%d%H%M%S")}"
 	File.open( task.name, 'w' ) do |fh|
 		fh.write( spec.to_ruby )
 	end
