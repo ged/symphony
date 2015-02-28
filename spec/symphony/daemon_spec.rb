@@ -21,9 +21,14 @@ end
 
 describe Symphony::Daemon do
 
+	before( :all ) do
+		@pids = ( 200..65534 ).cycle
+	end
+
 	before( :each ) do
-		allow( Process ).to receive( :fork ).and_yield
+		allow( Process ).to receive( :fork ).and_yield.and_return( @pids.next )
 		allow( Process ).to receive( :setpgid )
+		allow( Process ).to receive( :kill )
 		Symphony.configure( tasks: ['test', 'test'] )
 
 		dummy_session = Symphony::SpecHelpers::DummySession.new
@@ -85,9 +90,15 @@ describe Symphony::Daemon do
 	it "adjusts its tasks when its config is reloaded" do
 		config = Configurability.default_config
 		config.symphony.tasks = [ 'test1', 'test2' ]
+		# config.logging.__default__ = 'debug'
 		config.install
 
 		allow( Symphony::Task ).to receive( :exit )
+		allow( Process ).to receive( :kill ) do |sig, pid|
+			status = instance_double( Process::Status, :success? => true )
+			daemon.task_pids[ pid ].on_child_exit( pid, status )
+			daemon.task_pids.delete( pid )
+		end
 
 		begin
 			thr = Thread.new { daemon.run_tasks }

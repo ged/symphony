@@ -123,8 +123,8 @@ class Symphony::Daemon
 		while self.running?
 			self.tickle_task_groups
 			if self.wait_for_signals( Symphony.scaling_interval )
-			self.reap_children
-		end
+				self.reap_children
+			end
 		end
 
 	rescue => err

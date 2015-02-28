@@ -19,7 +19,7 @@ describe Symphony::Queue do
 	it "can build a Hash of AMQP options from its configuration" do
 		expect( described_class.amqp_session_options ).to include({
 			heartbeat: :server,
-			logger:    Loggability[ Symphony ],
+			logger:    Loggability[ Bunny ],
 		})
 	end
 
@@ -30,7 +30,7 @@ describe Symphony::Queue do
 			host: 'spimethorpe.com',
 			port: 23456,
 			heartbeat: :server,
-			logger:    Loggability[ Symphony ],
+			logger:    Loggability[ Bunny ],
 		})
 	end
 
