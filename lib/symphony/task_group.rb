@@ -56,11 +56,15 @@ class Symphony::TaskGroup
 	def start_worker( exit_on_idle=false )
 		self.log.debug "Starting a %p." % [ task_class ]
 		task_class.before_fork
+
 		pid = Process.fork do
 			task_class.after_fork
 			task_class.run( exit_on_idle )
-		end
+		end or raise "No PID from forked %p worker?" % [ task_class ]
+
 		Process.setpgid( pid, 0 )
+
+		self.log.info "Adding worker %p" % [ pid ]
 		self.workers << pid
 		@last_child_started = Time.now
 
@@ -143,6 +147,8 @@ class Symphony::TaskGroup
 	### Send the specified +signal+ to the process associated with +pid+, handling
 	### harmless errors.
 	def signal_processes( signal, *pids )
+		self.log.debug "Signalling processes: %p" % [ pids ]
+
 		# Do them one at a time, as Process.kill will abort on the first error if you
 		# pass more than one pid.
 		pids.each do |pid|
