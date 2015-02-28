@@ -179,7 +179,7 @@ events.
 	acknowledge false   # (default: true)
 
 
-== Worker Model
+== Work Model
 
 By default, a task signals that is ready for more messages as soon as
 it finishes processing one.  This isn't always the optimal environment
