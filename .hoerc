@@ -1,2 +1,2 @@
 --- 
-exclude: !ruby/regexp /tmp$|CVS|Gemfile(\.lock)?|TAGS|tmtags|\.(idea|hg|svn|git|hoerc|env|DS_Store|rvm(rc|\.gems)|irbrc|pryrc|tm_.*|rspec.*|rbx|travis\.yml)|(logs|coverage|benchmarks|experiments|manual|features|tmp\w*|wiki|\w+-\d+\.\d+\.\d+)\/|\.(bundle|sqlite|ru|graffle|espressostorage|esproj|ldif|log|sublime-\w+|pid|pem|gemspec|rl)|etc/config\.yml$/
+exclude: !ruby/regexp /tmp$|CVS|Gemfile(\.lock)?|TAGS|tmtags|\.(idea|hg|svn|git|hoerc|env|DS_Store|rvm(rc|\.gems)|irbrc|pryrc|tm_.*|rspec.*|rbx|travis\.yml|gems)|(logs|coverage|benchmarks|experiments|manual|features|tmp\w*|wiki|\w+-\d+\.\d+\.\d+)\/|\.(bundle|sqlite|ru|graffle|espressostorage|esproj|ldif|log|sublime-\w+|pid|pem|gemspec|rl)|etc/config\.yml$/
