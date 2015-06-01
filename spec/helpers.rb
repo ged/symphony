@@ -40,6 +40,9 @@ module Symphony::SpecHelpers
 			end
 			def subscribe_with( * )
 			end
+			def message_count
+				return 1
+			end
 		end
 		class Channel
 			def initialize
