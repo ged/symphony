@@ -1,3 +1,16 @@
+== v0.9.0 [2015-06-01] Michael Granger <ged@FaerieMUD.org>
+
+Improvements:
+
+- Implement task work models
+- Include the first backtrace frame when logging job errors
+
+Bugfixes:
+
+- Fix the patterns used by Symphony::Routing to match
+  RabbitMQ topic-queue matching.
+
+
 == v0.8.0 [2014-09-01] Michael Granger <ged@FaerieMUD.org>
 
 - Add route options to routing mixin
