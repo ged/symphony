@@ -2,6 +2,7 @@
 
 require_relative '../helpers'
 
+require 'ostruct'
 require 'symphony'
 require 'symphony/routing'
 
@@ -61,6 +62,302 @@ describe Symphony::Routing do
 		expect(
 			task_class.route_options['test.event.with_options']
 		).to include( scheduled: '2 times an hour' )
+	end
+
+
+	describe "route-matching" do
+
+		let( :task_class ) do
+			Class.new( Symphony::Task ) do
+				include Symphony::Routing
+				def initialize( * )
+					super
+					@run_data = Hash.new {|h,k| h[k] = [] }
+				end
+				attr_reader :run_data
+			end
+		end
+
+
+		### Call the task's #work method with the same stuff Bunny would for the
+		### given eventname
+		def publish( eventname )
+			delivery_info = OpenStruct.new( routing_key: eventname )
+			properties = OpenStruct.new( content_type: 'application/json' )
+
+			metadata = {
+				delivery_info: delivery_info,
+				properties: properties,
+				content_type: properties.content_type,
+			}
+
+			payload = '[]'
+			return task.work( payload, metadata )
+		end
+
+
+		context "for one-segment explicit routing keys (`simple`)" do
+
+			let( :task ) do
+				task_class.on( 'simple' ) {|*args| self.run_data[:simple] << args }
+				task_class.new( :queue )
+			end
+
+
+			it "runs the job for routing keys that exactly match" do
+				expect {
+					publish( 'simple' )
+				}.to change { task.run_data[:simple].length }.by( 1 )
+			end
+
+
+			it "doesn't run the job for routing keys which don't exactly match" do
+				expect {
+					publish( 'notsimple' )
+				}.to_not change { task.run_data[:simple].length }
+			end
+
+
+			it "doesn't run the job for routing keys which contain additional segments" do
+				expect {
+					publish( 'simple.additional1' )
+				}.to_not change { task.run_data[:simple_splat].length }
+			end
+
+		end
+
+
+		context "for routing keys with one segment wildcard (`simple.*`)" do
+
+			let( :task ) do
+				task_class.on( 'simple.*' ) {|*args| self.run_data[:simple_splat] << args }
+				task_class.new( :queue )
+			end
+
+
+			it "runs the job for routing keys with the same first segment and one additional segment" do
+				expect {
+					publish( 'simple.additional1' )
+				}.to change { task.run_data[:simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with only the same first segment" do
+				expect {
+					publish( 'simple' )
+				}.to_not change { task.run_data[:simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a different first segment" do
+				expect {
+					publish( 'notsimple.additional1' )
+				}.to_not change { task.run_data[:simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys which contain two additional segments" do
+				expect {
+					publish( 'simple.additional1.additional2' )
+				}.to_not change { task.run_data[:simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a matching second segment" do
+				expect {
+					publish( 'prepended.simple.additional1' )
+				}.to_not change { task.run_data[:simple_splat].length }
+			end
+
+		end
+
+
+		context "for routing keys with two consecutive segment wildcards (`simple.*.*`)" do
+
+			let( :task ) do
+				task_class.on( 'simple.*.*' ) {|*args| self.run_data[:simple_splat_splat] << args }
+				task_class.new( :queue )
+			end
+
+
+			it "runs the job for routing keys which contain two additional segments" do
+				expect {
+					publish( 'simple.additional1.additional2' )
+				}.to change { task.run_data[:simple_splat_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with the same first segment and one additional segment" do
+				expect {
+					publish( 'simple.additional1' )
+				}.to_not change { task.run_data[:simple_splat_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with only the same first segment" do
+				expect {
+					publish( 'simple' )
+				}.to_not change { task.run_data[:simple_splat_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a different first segment" do
+				expect {
+					publish( 'notsimple.additional1' )
+				}.to_not change { task.run_data[:simple_splat_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a matching second segment" do
+				expect {
+					publish( 'prepended.simple.additional1' )
+				}.to_not change { task.run_data[:simple_splat_splat].length }
+			end
+
+		end
+
+
+		context "for routing keys with bracketing segment wildcards (`*.simple.*`)" do
+
+			let( :task ) do
+				task_class.on( '*.simple.*' ) {|*args| self.run_data[:splat_simple_splat] << args }
+				task_class.new( :queue )
+			end
+
+
+			it "runs the job for routing keys with a matching second segment" do
+				expect {
+					publish( 'prepended.simple.additional1' )
+				}.to change { task.run_data[:splat_simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys which contain two additional segments" do
+				expect {
+					publish( 'simple.additional1.additional2' )
+				}.to_not change { task.run_data[:splat_simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with the same first segment and one additional segment" do
+				expect {
+					publish( 'simple.additional1' )
+				}.to_not change { task.run_data[:splat_simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with only the same first segment" do
+				expect {
+					publish( 'simple' )
+				}.to_not change { task.run_data[:splat_simple_splat].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a different first segment" do
+				expect {
+					publish( 'notsimple.additional1' )
+				}.to_not change { task.run_data[:splat_simple_splat].length }
+			end
+
+		end
+
+
+		context "for routing keys with a multi-segment wildcard (`simple.#`)" do
+
+			let( :task ) do
+				task_class.on( 'simple.#' ) {|*args| self.run_data[:simple_hash] << args }
+				task_class.new( :queue )
+			end
+
+
+			it "runs the job for routing keys with the same first segment and one additional segment" do
+				expect {
+					publish( 'simple.additional1' )
+				}.to change { task.run_data[:simple_hash].length }
+			end
+
+
+			it "runs the job for routing keys which contain two additional segments" do
+				expect {
+					publish( 'simple.additional1.additional2' )
+				}.to change { task.run_data[:simple_hash].length }
+			end
+
+
+			it "runs the job for routing keys with only the same first segment" do
+				expect {
+					publish( 'simple' )
+				}.to change { task.run_data[:simple_hash].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a different first segment" do
+				expect {
+					publish( 'notsimple.additional1' )
+				}.to_not change { task.run_data[:simple_hash].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a matching second segment" do
+				expect {
+					publish( 'prepended.simple.additional1' )
+				}.to_not change { task.run_data[:simple_hash].length }
+			end
+
+		end
+
+
+		context "for routing keys with bracketing multi-segment wildcards (`#.simple.#`)" do
+
+			let( :task ) do
+				task_class.on( '#.simple.#' ) {|*args| self.run_data[:hash_simple_hash] << args }
+				task_class.new( :queue )
+			end
+
+
+			it "runs the job for routing keys with the same first segment and one additional segment" do
+				expect {
+					publish( 'simple.additional1' )
+				}.to change { task.run_data[:hash_simple_hash].length }
+			end
+
+
+			it "runs the job for routing keys which contain two additional segments" do
+				expect {
+					publish( 'simple.additional1.additional2' )
+				}.to change { task.run_data[:hash_simple_hash].length }
+			end
+
+
+			it "runs the job for routing keys with only the same first segment" do
+				expect {
+					publish( 'simple' )
+				}.to change { task.run_data[:hash_simple_hash].length }
+			end
+
+
+			it "runs the job for three-segment routing keys with a matching second segment" do
+				expect {
+					publish( 'prepended.simple.additional1' )
+				}.to change { task.run_data[:hash_simple_hash].length }
+			end
+
+
+			it "runs the job for two-segment routing keys with a matching second segment" do
+				expect {
+					publish( 'prepended.simple' )
+				}.to change { task.run_data[:hash_simple_hash].length }
+			end
+
+
+			it "doesn't run the job for routing keys with a different first segment" do
+				expect {
+					publish( 'notsimple.additional1' )
+				}.to_not change { task.run_data[:hash_simple_hash].length }
+			end
+
+		end
+
 	end
 
 end

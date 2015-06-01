@@ -70,11 +70,12 @@ module Symphony::Routing
 		### Return a regular expression that will match messages matching the given
 		### +routing_key+.
 		def make_routing_pattern( routing_key )
-			re_string = routing_key.gsub( /\./, '\\.' )
-			re_string = re_string.gsub( /\*/, '([^\.]*)' )
-			re_string = re_string.gsub( /#/, '(.*)' )
+			re_string = Regexp.escape( routing_key ).
+				gsub( /\\\*/, '[^\.]*' ).
+				gsub( /\\.\\#/, '(\..*)?' ).
+				gsub( /\\#\\./, '(.*\.)?' )
 
-			return Regexp.compile( re_string )
+			return Regexp.compile( '^' + re_string + '$' )
 		end
 
 	end # module ClassMethods
