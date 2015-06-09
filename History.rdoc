@@ -1,3 +1,13 @@
+== v0.9.1 [2015-06-08] Michael Granger <ged@FaerieMUD.org>
+
+Fixes:
+
+- Make Symphony.tasks contain just the task names.
+  The Daemon will now load task classes on startup. This is so code can
+  depend on Symphony without loading every configured task anytime its
+  config loads.
+
+
 == v0.9.0 [2015-06-01] Michael Granger <ged@FaerieMUD.org>
 
 Improvements:
