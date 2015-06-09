@@ -66,9 +66,10 @@ describe Symphony do
 		described_class.load_config( 'a/different/configfile.yml', database: {dbname: 'test'} )
 	end
 
+
 	it "loads a task class for each configured task" do
-		expect( Symphony.tasks.size ).to eq( 1 )
-		expect( Symphony.tasks ).to include( Symphony::SpecHelpers::TestTask )
+		expect( Symphony.tasks.size ).to eq( 2 )
+		expect( Symphony.load_configured_tasks ).to include( Symphony::SpecHelpers::TestTask )
 	end
 
 end

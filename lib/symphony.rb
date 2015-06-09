@@ -72,7 +72,8 @@ module Symphony
 
 	### Load the tasks with the specified +task_names+ and return them
 	### as an Array.
-	def self::load_configured_tasks( task_config )
+	def self::load_configured_tasks
+		task_config = self.tasks
 		if task_config.respond_to?( :each_pair )
 			return self.task_config_from_hash( task_config )
 		else
@@ -129,8 +130,7 @@ module Symphony
 		self.throttle_max     = config[:throttle_max]
 		self.throttle_factor  = config[:throttle_factor]
 		self.scaling_interval = config[:scaling_interval]
-
-		self.tasks = self.load_configured_tasks( config[:tasks] )
+		self.tasks            = config[:tasks]
 	end
 
 end # module Symphony
