@@ -214,7 +214,7 @@ class Symphony::Daemon
 
 		self.log.debug "Managing task groups: %p" % [ old_task_groups ]
 
-		Symphony.tasks.each do |task_class, max|
+		Symphony.load_configured_tasks.each do |task_class, max|
 			# If the task is still configured, restart all of its workers
 			if group = old_task_groups.delete( task_class )
 				self.log.info "%p still configured; restarting its task group." % [ task_class ]

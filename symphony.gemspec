@@ -1,15 +1,14 @@
 # -*- encoding: utf-8 -*-
-# stub: symphony 0.10.0.pre20150601115614 ruby lib
+# stub: symphony 0.10.0.pre20150608171221 ruby lib
 
 Gem::Specification.new do |s|
   s.name = "symphony"
-  s.version = "0.10.0.pre20150601115614"
+  s.version = "0.10.0.pre20150608171221"
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1") if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib"]
   s.authors = ["Michael Granger", "Mahlon E. Smith"]
-  s.cert_chain = ["/Users/ged/.gem/gem-public_cert.pem"]
-  s.date = "2015-06-01"
+  s.date = "2015-06-09"
   s.description = "Symphony is a subscription-based asynchronous job system. It\nallows you to define jobs that watch for lightweight events from a\ndistributed-messaging AMQP broker, and do work based on their payload.\n\nIt includes several executables under bin/:\n\nsymphony::\n  A daemon which manages startup and shutdown of one or more Workers\n  running Tasks as they are published from a queue.\n\nsymphony-task::\n  A wrapper that runs a single task, useful for testing, or if you don't\n  require the process management that the symphony daemon provides."
   s.email = ["ged@FaerieMUD.org", "mahlon@martini.nu"]
   s.executables = ["symphony", "symphony-task"]
@@ -19,7 +18,7 @@ Gem::Specification.new do |s|
   s.licenses = ["BSD"]
   s.rdoc_options = ["-f", "fivefish", "-t", "Symphony"]
   s.required_ruby_version = Gem::Requirement.new(">= 2.0.0")
-  s.rubygems_version = "2.4.6"
+  s.rubygems_version = "2.4.7"
   s.signing_key = "/Volumes/Keys/ged-private_gem_key.pem"
   s.summary = "Symphony is a subscription-based asynchronous job system"
 
