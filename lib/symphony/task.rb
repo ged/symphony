@@ -346,7 +346,8 @@ class Symphony::Task
 			end
 
 			self.last_worked = Time.now
-	end
+			rval
+		end
 
 		return rval
 	end
