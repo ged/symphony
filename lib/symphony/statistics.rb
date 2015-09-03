@@ -20,6 +20,7 @@ module Symphony::Statistics
 		super
 		@samples = []
 		@sample_size = DEFAULT_SAMPLE_SIZE
+		@counter = 0
 	end
 
 
@@ -36,6 +37,7 @@ module Symphony::Statistics
 	def add_sample( value )
 		@samples << [ Time.now.to_f, value ]
 		@samples.pop( @samples.size - self.sample_size ) if @samples.size > self.sample_size
+		@counter = ( @counter + 1 ) % 3
 	end
 
 
@@ -48,6 +50,13 @@ module Symphony::Statistics
 	### Returns +true+ if the samples gathered so far indicate a downwards trend.
 	def sample_values_decreasing?
 		return self.calculate_trend < -3
+	end
+
+
+	### Return the mean of the job count samples.
+	def mean_jobcount
+		return 0 unless self.samples.size >= self.sample_size
+		return @samples.map( &:last ).reduce( :+ ) / @samples.length.to_f
 	end
 
 
@@ -87,7 +96,9 @@ module Symphony::Statistics
 
 		stde = Math.sqrt( (r / ( samples.size - 2 )) / s )
 
-		# Loggability[ Symphony ].debug "  job sampling trend is: %f" %  [ slope / stde ]
+		# Loggability[ Symphony ].debug "  job sampling trend is: %f" %  [ slope / stde ] if
+		# 	@counter.zero?
+
 		return slope / stde
 	end
 

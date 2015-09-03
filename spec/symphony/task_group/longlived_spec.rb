@@ -28,6 +28,15 @@ describe Symphony::TaskGroup::LongLived do
 		described_class.new( task, 2 )
 	end
 
+	let( :pid_generator ) do
+		Enumerator.new do |generator|
+			i = 414
+			loop do
+				generator.yield( i )
+				i += rand( 3 ) + 1
+			end
+		end
+	end
 
 	# not enough samples
 	# trending up
@@ -46,8 +55,12 @@ describe Symphony::TaskGroup::LongLived do
 
 	context "when told to adjust its worker pool" do
 
+		before( :each ) do
+			allow( Process ).to receive( :fork ) { pid_generator.next }
+		end
+
+
 		it "starts an initial worker if it doesn't have any" do
-			expect( Process ).to receive( :fork ).and_return( 414 )
 			allow( Process ).to receive( :setpgid ).with( 414, 0 )
 
 			channel = double( Bunny::Channel )
@@ -69,7 +82,6 @@ describe Symphony::TaskGroup::LongLived do
 			samples = [ 1, 2, 2, 3, 3, 3, 4 ]
 			task_group.sample_size = samples.size
 
-			expect( Process ).to receive( :fork ).and_return( 525, 528 )
 			allow( Process ).to receive( :setpgid )
 
 			channel = double( Bunny::Channel )
@@ -80,7 +92,9 @@ describe Symphony::TaskGroup::LongLived do
 				with( task.queue_name, passive: true, prefetch: 0 ).
 				and_return( queue )
 
-			allow( queue ).to receive( :consumer_count ).and_return( 1 )
+			expect( queue ).to receive( :consumer_count ) do
+				task_group.pids.size
+			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
@@ -91,16 +105,15 @@ describe Symphony::TaskGroup::LongLived do
 			end
 
 			expect( task_group.started_one_worker? ).to be_truthy
-			expect( task_group.pids ).to include( 525, 528 )
+			expect( task_group.pids ).to include( 414 )
+			expect( task_group.pids.length ).to eq( 2 )
 		end
 
 
 		it "starts an additional worker if its work load is holding steady at a non-zero value" do
-			pending "this being a problem we see in practice"
 			samples = [ 4, 4, 4, 5, 5, 4, 4 ]
-			task_group.sample_size = samples.size
+			task_group.sample_size = samples.size - 3
 
-			expect( Process ).to receive( :fork ).and_return( 525, 528 )
 			allow( Process ).to receive( :setpgid )
 
 			channel = double( Bunny::Channel )
@@ -111,7 +124,9 @@ describe Symphony::TaskGroup::LongLived do
 				with( task.queue_name, passive: true, prefetch: 0 ).
 				and_return( queue )
 
-			allow( queue ).to receive( :consumer_count ).and_return( 1 )
+			expect( queue ).to receive( :consumer_count ) do
+				task_group.pids.size
+			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
@@ -126,11 +141,9 @@ describe Symphony::TaskGroup::LongLived do
 
 
 		it "doesn't start a worker if it's already running the maximum number of workers" do
-			samples =   [ 1, 2, 2, 3, 3, 3, 4, 4, 4, 5 ]
-			consumers = [ 1, 1, 1, 1, 1, 1, 1, 2, 2, 2 ]
+			samples = [ 1, 2, 2, 3, 3, 3, 4, 4, 4, 5 ]
 			task_group.sample_size = samples.size - 3
 
-			expect( Process ).to receive( :fork ).and_return( 525, 528 )
 			allow( Process ).to receive( :setpgid )
 
 			channel = double( Bunny::Channel )
@@ -141,7 +154,9 @@ describe Symphony::TaskGroup::LongLived do
 				with( task.queue_name, passive: true, prefetch: 0 ).
 				and_return( queue )
 
-			expect( queue ).to receive( :consumer_count ).and_return( *consumers )
+			expect( queue ).to receive( :consumer_count ) do
+				task_group.pids.size
+			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
@@ -159,7 +174,6 @@ describe Symphony::TaskGroup::LongLived do
 			samples = [ 0, 1, 0, 0, 0, 0, 1, 0, 0 ]
 			task_group.sample_size = samples.size - 3
 
-			expect( Process ).to receive( :fork ).and_return( 525 )
 			allow( Process ).to receive( :setpgid )
 
 			channel = double( Bunny::Channel )
@@ -188,7 +202,6 @@ describe Symphony::TaskGroup::LongLived do
 			samples = [ 4, 3, 3, 2, 2, 2, 1, 1, 0, 0 ]
 			task_group.sample_size = samples.size
 
-			expect( Process ).to receive( :fork ).and_return( 525 )
 			allow( Process ).to receive( :setpgid )
 
 			channel = double( Bunny::Channel )
@@ -199,7 +212,9 @@ describe Symphony::TaskGroup::LongLived do
 				with( task.queue_name, passive: true, prefetch: 0 ).
 				and_return( queue )
 
-			allow( queue ).to receive( :consumer_count ).and_return( 1 )
+			expect( queue ).to receive( :consumer_count ) do
+				task_group.pids.size
+			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
