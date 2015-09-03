@@ -34,8 +34,14 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 	def needs_a_worker?
 		return true unless self.started_one_worker?
 		return false unless @queue
-		return false if @queue.consumer_count >= self.max_workers
-		return self.sample_values_increasing?
+		if ( cc = @queue.consumer_count ) >= self.max_workers
+			self.log.debug "Already at max workers (%d)" % [ self.max_workers ]
+			return false
+		else
+			self.log.debug "Not yet at max workers (have %d)" % [ cc ]
+		end
+		self.log.debug "Mean jobcount is %0.2f" % [ self.mean_jobcount ]
+		return self.mean_jobcount > 1 && !self.sample_values_decreasing?
 	end
 
 
