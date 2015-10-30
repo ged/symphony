@@ -1,3 +1,21 @@
+== v0.9.2 [2015-07-07] Mahlon E. Smith <mahlon@martini.nu>
+
+Fixes:
+
+- Ensure the work callback's block returns the work() rval, instead of
+  the current time. This fixes Task acknowledgement.
+
+
+== v0.9.1 [2015-06-08] Michael Granger <ged@FaerieMUD.org>
+
+Fixes:
+
+- Make Symphony.tasks contain just the task names.
+  The Daemon will now load task classes on startup. This is so code can
+  depend on Symphony without loading every configured task anytime its
+  config loads.
+
+
 == v0.9.0 [2015-06-01] Michael Granger <ged@FaerieMUD.org>
 
 Improvements:
