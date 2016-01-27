@@ -144,6 +144,20 @@ class Symphony::Task
 	class << self; alias_method :routing_keys, :subscribe_to ; end
 
 
+	### Get/set the "always re-bind" flag that causes the queue the task uses to always
+	### re-bind to its exchange when the task starts. The normal behavior is that the queue
+	### is only bound if it didn't already exist, which can mean that you'd need to destroy the
+	### queue to force it to rebind if you change a task's routing keys.
+	def self::always_rebind( new_setting=nil )
+		unless new_setting.nil?
+			self.log.info "%s forced re-binding." % [ new_setting ? "Enabled" : "Disabled" ]
+			@always_rebind = new_setting
+		end
+
+		return @always_rebind
+	end
+
+
 	### Enable or disable acknowledgements.
 	def self::acknowledge( new_setting=nil )
 		unless new_setting.nil?
@@ -228,7 +242,6 @@ class Symphony::Task
 
 		return @idle_timeout
 	end
-
 
 
 

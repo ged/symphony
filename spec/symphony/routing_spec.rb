@@ -65,6 +65,11 @@ describe Symphony::Routing do
 	end
 
 
+	it "sets an including Task to always rebind so updates are applied to existing queues" do
+		expect( task_class.always_rebind ).to be_truthy
+	end
+
+
 	describe "route-matching" do
 
 		let( :task_class ) do
