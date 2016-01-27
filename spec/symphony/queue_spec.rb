@@ -149,6 +149,24 @@ describe Symphony::Queue do
 		end
 
 
+		it "re-binds to an existing queue if the task specifies that it should always re-bind" do
+			testing_task_class.subscribe_to( 'floppy.rabbit.#' )
+			testing_task_class.always_rebind( true )
+			amqp_queue = double( "AMQP queue" )
+
+			expect( described_class.amqp_channel ).to receive( :queue ).
+				with( queue.name, passive: true ).
+				and_return( amqp_queue )
+			expect( described_class.amqp_channel ).to receive( :prefetch ).
+				with( Symphony::Queue::DEFAULT_PREFETCH )
+
+			expect( amqp_queue ).to receive( :bind ).
+				with( described_class.amqp_exchange, routing_key: 'floppy.rabbit.#' )
+
+			expect( queue.create_amqp_queue ).to be( amqp_queue )
+		end
+
+
 		it "subscribes to the message queue with a configured consumer to wait for messages" do
 			amqp_queue = double( "AMQP queue", name: 'a queue', channel: described_class.amqp_channel )
 			consumer = double( "Bunny consumer", channel: described_class.amqp_channel )

@@ -29,7 +29,7 @@ hoespec = Hoe.spec 'symphony' do |spec|
 	spec.dependency 'configurability', '~> 2.2'
 	spec.dependency 'loggability', '~> 0.10'
 	spec.dependency 'pluggability', '~> 0.4'
-	spec.dependency 'bunny', '~> 1.5'
+	spec.dependency 'bunny', '~> 2.0'
 	spec.dependency 'sysexits', '~> 1.1'
 	spec.dependency 'yajl-ruby', '~> 1.2'
 	spec.dependency 'msgpack', '~> 0.5'

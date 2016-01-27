@@ -52,12 +52,12 @@ were connecting to a virtual host called '/test', wanted to log all
 messages to STDERR at a level of 'debug', and had an exchange called
 'symphony' (the default):
 
-	amqp:
-		broker_uri: amqp://USERNAME:PASSWORD@example.com:5672/%2Ftest
-		exchange: symphony
+    amqp:
+        broker_uri: amqp://USERNAME:PASSWORD@example.com:5672/%2Ftest
+        exchange: symphony
 
-	logging:
-		symphony: debug STDERR (color)
+    logging:
+        symphony: debug STDERR (color)
 
 
 Symphony won't create the exchange for you, it is expected to
@@ -78,26 +78,26 @@ calling #run on the class itself.
 
 == The Simplest Task
 
-	#!/usr/bin/env ruby
-	
-	require 'symphony'
-	
-	class Test < Symphony::Task
-		
-		# Process all events
-		subscribe_to '#'
-		
-		def work( payload, metadata )
-			puts "I received an event: %p with a payload of %p" % [
-				metadata[ :delivery_info ][ :routing_key ],
-				payload
-			]
-			return true
-		end
-	end
-	
-	Symphony.load_config( 'etc/config.yml' )
-	Test.run
+    #!/usr/bin/env ruby
+    
+    require 'symphony'
+    
+    class Test < Symphony::Task
+        
+        # Process all events
+        subscribe_to '#'
+        
+        def work( payload, metadata )
+            puts "I received an event: %p with a payload of %p" % [
+                metadata[ :delivery_info ][ :routing_key ],
+                payload
+            ]
+            return true
+        end
+    end
+    
+    Symphony.load_config( 'etc/config.yml' )
+    Test.run
 
 
 The only requirement is the 'subscribe_to' clause, which indicates what
@@ -107,10 +107,10 @@ In practice, you'll likely want to be more discerning.  You can specify
 as many comma separated topics as you like for a given task, as well as
 use AMQP wildcard characters.
 
-	# Subscribe to hypothetical creation events for all types,
-	# and deletion events for users.
-	#
-	subscribe_to '#.create, 'users.delete'
+    # Subscribe to hypothetical creation events for all types,
+    # and deletion events for users.
+    #
+    subscribe_to '#.create, 'users.delete'
 
 In this fashion, you can decide to have many separate (and optionally
 distributed) tasks that only respond to a small subset of possible
@@ -126,44 +126,43 @@ workers will receive roughly equal numbers of matching events.
 
 == An Aside on Queues and Binding Behavior
 
-A task will automatically create an auto-delete queue for itself with a
-sane (but configurable) name, along with subscription bindings, ONLY if
-the queue didn't previously exist.  The auto-delete flag ensures that
-when the last worker disconnects, the queue is automatically removed
-from the AMQP broker, setting everything back to the state it was before
-a Symphony worker ever connected.
+By default, a task will automatically create an auto-delete queue for itself
+with a sane (but configurable) name, along with subscription bindings, ONLY if
+the queue didn't previously exist. The auto-delete flag ensures that when the
+last worker disconnects, the queue is automatically removed from the AMQP
+broker, setting everything back to the state it was before a Symphony worker
+ever connected.
 
-Along the same logic as the initial exchange creation, if a matching
-queue exists already for a task name (an automatically generated or
-manually specified name with the 'queue_name' option), then a binding is
-NOT created.  Symphony is 'hands off' for anything server side that
-already exists, so you can enforce specific behaviors, and know that
-Symphony won't fiddle with them.
+Along the same logic as the initial exchange creation, if a matching queue
+exists already for a task name (an automatically generated or manually
+specified name with the 'queue_name' option), then a binding is NOT created by
+default. Symphony defaults to being "hands off" for anything server side that
+already exists, so you can enforce specific behaviors, and know that Symphony
+won't fiddle with them.
 
-This can be confusing if you've created a queue manually for a task,
-and didn't also manually create a binding for the topic key.  There are
-some advanced routing cases where you'll want to set up queues yourself,
-rather than let Symphony automatically create and remove them,
-we'll talk more on that later.
+This can be confusing if you've created a queue manually for a task, and didn't
+also manually create a binding for the topic key. There are some advanced
+routing cases where you'll want to set up queues yourself, rather than let
+Symphony automatically create and remove them, or rebind existing queues on
+startup; we'll talk more on that later.
 
 
 == Return Values
 
-By default, a Task is configured to tell AMQP when it has completed its
-job.  It does this by returning +true+ from the #work method.  When AMQP
-sees the job was completed, the message is considered "delivered", and
-its lifetime is at an end.  If instead, the task returns an explicit
-+false+, the message is retried, potentially on a different task worker.
+By default, a Task is configured to tell AMQP when it has completed its job. It
+does this by returning +true+ from the #work method. When AMQP sees the job was
+completed, the message is considered "delivered", and its lifetime is at an
+end. If instead, the task returns an explicit +false+, the message is retried,
+potentially on a different task worker.
 
-If something within the task raises an exception, the default behavior
-is to permanently abort the task.  If you need different behavior,
-you'll need to catch the exception.  As the task author, you're in the
-best position to know if a failure state requires an immediate retry,
-or a permanent rejection.  If you'll be allowing message retries, you
-might also want to consider publishing messages with a maximum TTL, to
-avoid any situations that could cause jobs to loop infinitely.  (Default
-Max-TTL is an example of something that is settable when creating queues
-on the RabbitMQ server manually.)
+If something within the task raises an exception, the default behavior is to
+permanently abort the task. If you need different behavior, you'll need to
+catch the exception. As the task author, you're in the best position to know if
+a failure state requires an immediate retry, or a permanent rejection. If
+you'll be allowing message retries, you might also want to consider publishing
+messages with a maximum TTL, to avoid any situations that could cause jobs to
+loop infinitely. (Default Max-TTL is an example of something that is settable
+when creating queues on the RabbitMQ server manually.)
 
 
 = Task Options
@@ -176,7 +175,7 @@ considers a message as "delivered" the moment a consumer receives it.
 This can be useful for additional speed when processing non-important
 events.
 
-	acknowledge false   # (default: true)
+    acknowledge false   # (default: true)
 
 
 == Work Model
@@ -195,7 +194,7 @@ fresh process can take its place.  You can do all of your expensive work
 within the #work method, leaving the main "waiting for messages" loop as
 low-resource as possible.
 
-	work_model :oneshot  # (default:  :longlived)
+    work_model :oneshot  # (default:  :longlived)
 
 
 == Message Prefetch
@@ -208,7 +207,7 @@ trade off is that all prefetched message payloads are stored in memory
 until they are processed.  It's a good idea to keep this low if your
 payloads are large.
 
-	prefetch 100   # (default: 10)
+    prefetch 100   # (default: 10)
 
 Message prefetch is ignored (automatically set to 1) if the task's
 work_model is set to oneshot.
@@ -228,26 +227,46 @@ There is no default timeout.  If one is set, the default action is to
 act as an exception, which is a permanent rejection.  You can choose to
 retry instead:
 
-	# perform work for maximum 20 seconds, then stop and try
-	# again on another worker
-	#
-	timeout 20.0, :action => :retry
+    # perform work for maximum 20 seconds, then stop and try
+    # again on another worker
+    #
+    timeout 20.0, :action => :retry
+
 
 == Queue Name
 
 By default, Symphony will try and create a queue based on the Class
 name of the task.  You can override this per-task.
 
-	class Test < Symphony::Task
-		
-		# Process all events
-		subscribe_to '#'
-		
-		# I don't want to connect to a 'test' queue, lets make it interesting:
-		queue_name 'shazzzaaaam'
-			
-		def work( payload, metadata )
-		...
+    class Test < Symphony::Task
+        
+        # Process all events
+        subscribe_to '#'
+        
+        # I don't want to connect to a 'test' queue, lets make it interesting:
+        queue_name 'shazzzaaaam'
+            
+        def work( payload, metadata )
+        ...
+
+
+== Queue Persistence
+
+If you'd rather keep the Symphony queues around even when the workers aren't
+running (to, for example, queue up events for processing when they resume), you
+can tell a task to create a persistent queue instead of an auto-delete queue:
+
+    persistent true
+
+
+== Queue Re-binding
+
+If you want Symphony to re-bind a worker's queue when it starts up, you call tell it to with +always_rebind+:
+
+    always_rebind true
+
+Note that re-binding doesn't *unbind* from the existing pattern/s, so you'll 
+need to account for this in the Task's +work+ method.
 
 
 = Plugins
@@ -262,13 +281,13 @@ of a task worker to the log.  It shows processed message averages and
 resource consumption summaries at the "info" log level, and also changes
 the process name to display a total count and jobs per second rate.
 
-	require 'symphony/metrics'
+    require 'symphony/metrics'
 
-	class Test < Symphony::Task
-		prepend Symphony::Metrics
-		# ...
-	end
-		
+    class Test < Symphony::Task
+        prepend Symphony::Metrics
+        # ...
+    end
+        
 
 == Routing
 
@@ -277,28 +296,32 @@ in the #work method, and instead links individual units of work to
 separate #on declarations.  This makes tasks that are designed to
 receive multiple message topics much easier to maintain and test.
 
-	require 'symphony/routing'
+    require 'symphony/routing'
 
-	class Test < Symphony::Task
-		include Symphony::Routing
-		
-		on 'users.create', 'workstation.create' do |payload, metadata|
-			puts "A user or workstation wants to be created!"
-			# ...
-			return true
-		end
-		
-		on 'users.delete' do |payload, metadata|
-			puts "A user wants to be deleted!"
-			return true
-		end
-	end
+    class Test < Symphony::Task
+        include Symphony::Routing
+        
+        on 'users.create', 'workstation.create' do |payload, metadata|
+            puts "A user or workstation wants to be created!"
+            # ...
+            return true
+        end
+        
+        on 'users.delete' do |payload, metadata|
+            puts "A user wants to be deleted!"
+            return true
+        end
+    end
 
 The #on method accepts the same syntax as the 'subscribe_to' option.  In
 fact, if you're using the routing plugin, it removes the requirement of
 'subscribe_to' altogether, making it entirely redundant. #on blocks that
 match multiple times for a message will be executed in top down order.
 It will only return true (signalling success) if all blocks return true.
+
+This plugin enables +always_rebind+ on your task when it's included so
+that adding a routing pattern will be reflected in the bindings of persistent
+queues.
 
 
 = Publishing messages
@@ -311,7 +334,7 @@ If you want to publish or republish from within Symphony, you can
 get a reference to the exchange object Symphony is binding to via
 the Symphony::Queue class:
 
-	exchange = Symphony::Queue.amqp_exchange
+    exchange = Symphony::Queue.amqp_exchange
 
 This is a Bunny object that you can interact with directly.  See the
 Bunny documentation[http://rubybunny.info/articles/exchanges.html] for
@@ -347,9 +370,9 @@ dead letter queue called '_failures', so all errors filter there without
 any further configuration.  New queues have the same policy applied
 automatically.
 
-	% rabbitmqctl list_policies
-	Listing policies ...
-	/     DLX     queues  ^[^_].* {"dead-letter-exchange":"_failures"}    0
+    % rabbitmqctl list_policies
+    Listing policies ...
+    /     DLX     queues  ^[^_].* {"dead-letter-exchange":"_failures"}    0
 
 There is an example task (symphony/lib/tasks/failure_logger.rb)
 that you're welcome to use as a foundation for your error reporting.

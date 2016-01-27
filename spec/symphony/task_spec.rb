@@ -164,6 +164,12 @@ describe Symphony::Task do
 		end
 
 
+		it "can specify that its queue should always rebind" do
+			task_class.always_rebind( true )
+			expect( task_class.always_rebind ).to be_truthy
+		end
+
+
 		context "an instance" do
 
 			let( :task_class ) do
@@ -243,7 +249,6 @@ describe Symphony::Task do
 			end
 
 		end
-
 
 
 		context "an instance with no #work method" do

@@ -142,29 +142,20 @@ class Symphony::Queue
 	end
 
 
-	### Return a queue configured for the specified +task_class+.
-	def self::for_task( task_class )
-		args = [
-			task_class.queue_name,
-			task_class.acknowledge,
-			task_class.consumer_tag,
-			task_class.routing_keys,
-			task_class.prefetch,
-			task_class.persistent
-		]
-		return new( *args )
-	end
+	##
+	# Syntactic sugar alias
+	singleton_method_alias :for_task, :new
 
 
-
-	### Create a new Queue with the specified configuration.
-	def initialize( name, acknowledge, consumer_tag, routing_keys, prefetch, persistent )
-		@name          = name
-		@acknowledge   = acknowledge
-		@consumer_tag  = consumer_tag
-		@routing_keys  = routing_keys
-		@prefetch      = prefetch
-		@persistent    = persistent
+	### Create a new Queue for the specified +task_class+.
+	def initialize( task_class )
+		@name          = task_class.queue_name
+		@acknowledge   = task_class.acknowledge
+		@consumer_tag  = task_class.consumer_tag
+		@routing_keys  = task_class.routing_keys
+		@prefetch      = task_class.prefetch
+		@persistent    = task_class.persistent
+		@always_rebind = task_class.always_rebind
 
 		@amqp_queue    = nil
 		@shutting_down = false
@@ -175,27 +166,39 @@ class Symphony::Queue
 	public
 	######
 
+	##
 	# The name of the queue
 	attr_reader :name
 
+	##
 	# Acknowledge mode
 	attr_reader :acknowledge
 
+	##
 	# The tag to use when setting up consumer
 	attr_reader :consumer_tag
 
+	##
 	# The Array of routing keys to use when binding the queue to the exchange
 	attr_reader :routing_keys
 
+	##
 	# The maximum number of un-acked messages to prefetch
 	attr_reader :prefetch
 
+	##
 	# Whether or not to create a persistent queue
 	attr_reader :persistent
 
+	##
+	# Whether or not to re-bind the queue to the exchange during setup
+	attr_predicate :always_rebind
+
+	##
 	# The underlying Bunny::Queue this object manages
 	attr_reader :amqp_queue
 
+	##
 	# The Bunny::Consumer that is dispatching messages for the queue.
 	attr_accessor :consumer
 
@@ -251,27 +254,32 @@ class Symphony::Queue
 	def create_amqp_queue( prefetch_count=DEFAULT_PREFETCH )
 		exchange = self.class.amqp_exchange
 		channel = self.class.amqp_channel
+		created_queue = false
+		queue         = nil
 
 		begin
 			queue = channel.queue( self.name, passive: true )
 			channel.prefetch( prefetch_count )
 			self.log.info "Using pre-existing queue: %s" % [ self.name ]
-			return queue
 		rescue Bunny::NotFound => err
-			self.log.info "%s; using an auto-delete queue instead." % [ err.message ]
+			self.log.info "%s; creating a new queue instead." % [ err.message ]
+			created_queue = true
 			channel = self.class.reset_amqp_channel
 			channel.prefetch( prefetch_count )
 
 			queue = channel.queue( self.name, auto_delete: !self.persistent )
+		end
+
+		if self.always_rebind? || created_queue
 			self.routing_keys.each do |key|
 				self.log.info "  binding queue %s to the %s exchange with topic key: %s" %
 					[ self.name, exchange.name, key ]
 				queue.bind( exchange, routing_key: key )
 			end
+		end
 
 			return queue
 		end
-	end
 
 
 	### Handle each subscribed message.

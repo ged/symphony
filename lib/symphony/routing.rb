@@ -21,6 +21,7 @@ module Symphony::Routing
 		mod.singleton_attr_accessor( :routes, :route_options )
 		mod.routes = Hash.new {|h,k| h[k] = [] }
 		mod.route_options = Hash.new {|h,k| h[k] = {} }
+		mod.always_rebind( true )
 	end
 
 
