@@ -1,3 +1,11 @@
+== v0.10.0 [2016-03-02] Michael Granger <ged@FaerieMUD.org>
+
+Enhancements:
+
+- Add a setting to tasks to force them to always rebind
+- Invert scaling logic to handle initial load
+
+
 == v0.9.2 [2015-07-07] Mahlon E. Smith <mahlon@martini.nu>
 
 Fixes:

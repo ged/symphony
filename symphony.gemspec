@@ -1,15 +1,14 @@
 # -*- encoding: utf-8 -*-
-# stub: symphony 0.10.0.pre20150707113726 ruby lib
+# stub: symphony 0.11.0.pre20160302133235 ruby lib
 
 Gem::Specification.new do |s|
   s.name = "symphony"
-  s.version = "0.10.0.pre20150707113726"
+  s.version = "0.11.0.pre20160302133235"
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1") if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib"]
   s.authors = ["Michael Granger", "Mahlon E. Smith"]
-  s.cert_chain = ["/Users/ged/.gem/gem-public_cert.pem"]
-  s.date = "2015-07-07"
+  s.date = "2016-03-02"
   s.description = "Symphony is a subscription-based asynchronous job system. It\nallows you to define jobs that watch for lightweight events from a\ndistributed-messaging AMQP broker, and do work based on their payload.\n\nIt includes several executables under bin/:\n\nsymphony::\n  A daemon which manages startup and shutdown of one or more Workers\n  running Tasks as they are published from a queue.\n\nsymphony-task::\n  A wrapper that runs a single task, useful for testing, or if you don't\n  require the process management that the symphony daemon provides."
   s.email = ["ged@FaerieMUD.org", "mahlon@martini.nu"]
   s.executables = ["symphony", "symphony-task"]
@@ -19,7 +18,7 @@ Gem::Specification.new do |s|
   s.licenses = ["BSD"]
   s.rdoc_options = ["-f", "fivefish", "-t", "Symphony"]
   s.required_ruby_version = Gem::Requirement.new(">= 2.0.0")
-  s.rubygems_version = "2.4.7"
+  s.rubygems_version = "2.4.8"
   s.signing_key = "/Volumes/Keys/ged-private_gem_key.pem"
   s.summary = "Symphony is a subscription-based asynchronous job system"
 
@@ -30,7 +29,7 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<configurability>, ["~> 2.2"])
       s.add_runtime_dependency(%q<loggability>, ["~> 0.10"])
       s.add_runtime_dependency(%q<pluggability>, ["~> 0.4"])
-      s.add_runtime_dependency(%q<bunny>, ["~> 1.5"])
+      s.add_runtime_dependency(%q<bunny>, ["~> 2.0"])
       s.add_runtime_dependency(%q<sysexits>, ["~> 1.1"])
       s.add_runtime_dependency(%q<yajl-ruby>, ["~> 1.2"])
       s.add_runtime_dependency(%q<msgpack>, ["~> 0.5"])
@@ -43,12 +42,12 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<rspec>, ["~> 3.0"])
       s.add_development_dependency(%q<simplecov>, ["~> 0.8"])
       s.add_development_dependency(%q<timecop>, ["~> 0.7"])
-      s.add_development_dependency(%q<hoe>, ["~> 3.13"])
+      s.add_development_dependency(%q<hoe>, ["~> 3.14"])
     else
       s.add_dependency(%q<configurability>, ["~> 2.2"])
       s.add_dependency(%q<loggability>, ["~> 0.10"])
       s.add_dependency(%q<pluggability>, ["~> 0.4"])
-      s.add_dependency(%q<bunny>, ["~> 1.5"])
+      s.add_dependency(%q<bunny>, ["~> 2.0"])
       s.add_dependency(%q<sysexits>, ["~> 1.1"])
       s.add_dependency(%q<yajl-ruby>, ["~> 1.2"])
       s.add_dependency(%q<msgpack>, ["~> 0.5"])
@@ -61,13 +60,13 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<rspec>, ["~> 3.0"])
       s.add_dependency(%q<simplecov>, ["~> 0.8"])
       s.add_dependency(%q<timecop>, ["~> 0.7"])
-      s.add_dependency(%q<hoe>, ["~> 3.13"])
+      s.add_dependency(%q<hoe>, ["~> 3.14"])
     end
   else
     s.add_dependency(%q<configurability>, ["~> 2.2"])
     s.add_dependency(%q<loggability>, ["~> 0.10"])
     s.add_dependency(%q<pluggability>, ["~> 0.4"])
-    s.add_dependency(%q<bunny>, ["~> 1.5"])
+    s.add_dependency(%q<bunny>, ["~> 2.0"])
     s.add_dependency(%q<sysexits>, ["~> 1.1"])
     s.add_dependency(%q<yajl-ruby>, ["~> 1.2"])
     s.add_dependency(%q<msgpack>, ["~> 0.5"])
@@ -80,6 +79,6 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<rspec>, ["~> 3.0"])
     s.add_dependency(%q<simplecov>, ["~> 0.8"])
     s.add_dependency(%q<timecop>, ["~> 0.7"])
-    s.add_dependency(%q<hoe>, ["~> 3.13"])
+    s.add_dependency(%q<hoe>, ["~> 3.14"])
   end
 end
