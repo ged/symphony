@@ -17,6 +17,10 @@ class FailureLogger < Symphony::Task
 	# Connect to a specific queue
 	queue_name '_failures'
 
+	# Dead letter queue needs to be preset serverside.
+	# We don't want to ever explicitly bind to a different (main) exchange.
+	always_rebind false
+
 
 	### Set up the output device. By default it's STDERR, but it can be anything
 	### that responds to #<<.
