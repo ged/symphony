@@ -26,7 +26,7 @@ hoespec = Hoe.spec 'symphony' do |spec|
 	spec.developer 'Michael Granger', 'ged@FaerieMUD.org'
 	spec.developer 'Mahlon E. Smith', 'mahlon@martini.nu'
 
-	spec.dependency 'configurability', '~> 2.2'
+	spec.dependency 'configurability', '~> 3.1'
 	spec.dependency 'loggability', '~> 0.10'
 	spec.dependency 'pluggability', '~> 0.4'
 	spec.dependency 'bunny', '~> 2.0'
