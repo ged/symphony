@@ -27,18 +27,18 @@ hoespec = Hoe.spec 'symphony' do |spec|
 	spec.developer 'Mahlon E. Smith', 'mahlon@martini.nu'
 
 	spec.dependency 'configurability', '~> 3.1'
-	spec.dependency 'loggability', '~> 0.10'
+	spec.dependency 'loggability', '~> 0.11'
 	spec.dependency 'pluggability', '~> 0.4'
 	spec.dependency 'bunny', '~> 2.0'
 	spec.dependency 'sysexits', '~> 1.1'
-	spec.dependency 'yajl-ruby', '~> 1.2'
-	spec.dependency 'msgpack', '~> 0.5'
+	spec.dependency 'yajl-ruby', '~> 1.3'
+	spec.dependency 'msgpack', '~> 1.0'
 	spec.dependency 'metriks', '~> 0.9'
 	spec.dependency 'rusage', '~> 0.2'
 
 	spec.dependency 'rspec', '~> 3.0', :developer
 	spec.dependency 'simplecov', '~> 0.8', :developer
-	spec.dependency 'timecop', '~> 0.7', :developer
+	spec.dependency 'timecop', '~> 0.8', :developer
 
 	spec.require_ruby_version( '>=2.0.0' )
 	spec.hg_sign_tags = true if spec.respond_to?( :hg_sign_tags= )
