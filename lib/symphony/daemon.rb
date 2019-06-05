@@ -69,7 +69,7 @@ class Symphony::Daemon
 	def initialize
 		@task_pids   = {}
 		@task_groups = {}
-		@running             = false
+		@running     = false
 
 		self.set_up_signal_handling
 	end
@@ -233,7 +233,7 @@ class Symphony::Daemon
 			self.log.info "%p no longer configured; stopping its task group." % [ task_class ]
 			self.stop_task_group( group )
 		end
-		end
+	end
 
 
 	### Start a new task group for the given +task_class+ and +max+ number of workers.
@@ -264,7 +264,7 @@ class Symphony::Daemon
 			new_pids = group.adjust_workers or next
 			new_pids.each do |pid|
 				self.task_pids[ pid ] = group
-	end
+			end
 		end
 	end
 
@@ -341,7 +341,9 @@ class Symphony::Daemon
 	### Notify the task group the specified +pid+ belongs to that its child exited
 	### with the specified +status+.
 	def notify_group( pid, status )
+		self.log.debug "Notifying group of reaped child %d: %p" % [ pid, status ]
 		return unless self.running?
+
 		group = self.task_pids[ pid ]
 		group.on_child_exit( pid, status )
 	end
