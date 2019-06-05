@@ -3,8 +3,6 @@ projectDirectory     = "$CWD"
 windowTitle          = "${CWD/^.*\///} — «$TM_DISPLAYNAME»"
 excludeInFileChooser = "{$exclude,.hg,pkg}"
 
-TM_RUBY = '/Users/mgranger/.rvm/bin/rvm-auto-ruby'
-
 [ source.ruby ]
 softTabs         = false
 tabSize          = 4
