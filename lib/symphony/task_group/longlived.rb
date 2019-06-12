@@ -15,43 +15,13 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 	### run a maximum of +max_workers+.
 	def initialize( task_class, max_workers )
 		super
-
-		@queue              = nil
-		@pids               = Set.new
-		@started_one_worker = false
+		@queue = nil
 	end
 
 
 	######
 	public
 	######
-
-	# The PIDs of the child this task group manages
-	attr_reader :pids
-
-
-	### Return +true+ if the task group should scale up by one.
-	def needs_a_worker?
-		return true unless self.started_one_worker?
-		return false unless @queue
-		if ( cc = @queue.consumer_count ) >= self.max_workers
-			self.log.debug "Already at max workers (%d)" % [ self.max_workers ]
-			return false
-		else
-			self.log.debug "Not yet at max workers (have %d)" % [ cc ]
-		end
-		self.log.debug "Mean jobcount is %0.2f" % [ self.mean_jobcount ]
-		return self.mean_jobcount > 1 && !self.sample_values_decreasing?
-	end
-
-
-	### Returns +true+ if the group has started at least one worker. Used to avoid
-	### racing to start workers when one worker has started, but we haven't yet connected
-	### to AMQP to get consumer count yet.
-	def started_one_worker?
-		return @started_one_worker
-	end
-
 
 	### If the number of workers is not at the maximum, start some.
 	def adjust_workers
@@ -62,11 +32,28 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 		if self.needs_a_worker?
 			self.log.info "Too few workers for (%s); spinning one up." % [ self.task_class.name ]
 			pid = self.start_worker( @started_one_worker )
-			self.pids.add( pid )
 			return [ pid ]
 		end
 
 		return nil
+	end
+
+
+	### Return +true+ if the task group should scale up by one.
+	def needs_a_worker?
+		return true if self.workers.empty?
+		return false unless @queue
+
+		# Calculate the number of workers across the whole broker
+		if ( cc = @queue.consumer_count ) >= self.max_workers
+			self.log.debug "Already at max workers (%d)" % [ self.max_workers ]
+			return false
+		else
+			self.log.debug "Not yet at max workers (have %d)" % [ cc ]
+		end
+
+		self.log.debug "Mean jobcount is %0.2f" % [ self.mean_jobcount ]
+		return self.mean_jobcount > 1 && !self.sample_values_decreasing?
 	end
 
 
@@ -80,8 +67,6 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 	### Overridden to grab a Bunny::Queue for monitoring when the first
 	### worker starts.
 	def start_worker( exit_on_idle=false )
-		@started_one_worker = true
-
 		pid = super
 		self.log.info "Start a new worker at pid %d" % [ pid ]
 

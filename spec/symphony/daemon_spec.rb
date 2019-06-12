@@ -90,7 +90,7 @@ describe Symphony::Daemon do
 	it "adjusts its tasks when its config is reloaded" do
 		config = Configurability.default_config
 		config.symphony.tasks = [ 'test1', 'test2' ]
-		# config.logging.__default__ = 'debug'
+		config.logging.__default__ = 'fatal'
 		config.install
 
 		allow( Symphony::Task ).to receive( :exit )

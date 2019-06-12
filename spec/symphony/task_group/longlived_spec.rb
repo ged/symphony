@@ -73,8 +73,8 @@ describe Symphony::TaskGroup::LongLived do
 
 			task_group.adjust_workers
 
-			expect( task_group.started_one_worker? ).to be_truthy
-			expect( task_group.pids ).to include( 414 )
+			expect( task_group.workers ).to_not be_empty
+			expect( task_group.workers ).to contain_exactly( 414 )
 		end
 
 
@@ -93,7 +93,7 @@ describe Symphony::TaskGroup::LongLived do
 				and_return( queue )
 
 			expect( queue ).to receive( :consumer_count ) do
-				task_group.pids.size
+				task_group.workers.size
 			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
@@ -104,9 +104,8 @@ describe Symphony::TaskGroup::LongLived do
 				end
 			end
 
-			expect( task_group.started_one_worker? ).to be_truthy
-			expect( task_group.pids ).to include( 414 )
-			expect( task_group.pids.length ).to eq( 2 )
+			expect( task_group.workers ).to include( 414 )
+			expect( task_group.workers.length ).to eq( 2 )
 		end
 
 
@@ -125,7 +124,7 @@ describe Symphony::TaskGroup::LongLived do
 				and_return( queue )
 
 			expect( queue ).to receive( :consumer_count ) do
-				task_group.pids.size
+				task_group.workers.size
 			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
@@ -136,7 +135,7 @@ describe Symphony::TaskGroup::LongLived do
 				end
 			end
 
-			expect( task_group.pids.size ).to eq( 2 )
+			expect( task_group.workers.size ).to eq( 2 )
 		end
 
 
@@ -155,7 +154,7 @@ describe Symphony::TaskGroup::LongLived do
 				and_return( queue )
 
 			expect( queue ).to receive( :consumer_count ) do
-				task_group.pids.size
+				task_group.workers.size
 			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
@@ -166,7 +165,7 @@ describe Symphony::TaskGroup::LongLived do
 				end
 			end
 
-			expect( task_group.pids.size ).to eq( 2 )
+			expect( task_group.workers.size ).to eq( 2 )
 		end
 
 
@@ -194,7 +193,7 @@ describe Symphony::TaskGroup::LongLived do
 				end
 			end
 
-			expect( task_group.pids.size ).to eq( 1 )
+			expect( task_group.workers.size ).to eq( 1 )
 		end
 
 
@@ -213,7 +212,7 @@ describe Symphony::TaskGroup::LongLived do
 				and_return( queue )
 
 			expect( queue ).to receive( :consumer_count ) do
-				task_group.pids.size
+				task_group.workers.size
 			end.at_least( :once )
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
@@ -224,8 +223,7 @@ describe Symphony::TaskGroup::LongLived do
 				end
 			end
 
-			expect( task_group.started_one_worker? ).to be_truthy
-			expect( task_group.pids.size ).to eq( 1 )
+			expect( task_group.workers.size ).to eq( 1 )
 		end
 
 	end
