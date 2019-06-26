@@ -292,6 +292,8 @@ class Symphony::Task
 	def start
 		rval = nil
 
+		Process.setproctitle( self.procname )
+
 		begin
 			self.restarting = false
 			rval = self.with_signal_handler( *SIGNALS ) do
@@ -473,6 +475,18 @@ class Symphony::Task
 		self.log.error "Timed out while performing work"
 		raise if self.class.timeout_action == :reject
 		return false
+	end
+
+
+	### Return a string for setting the proc title
+	def procname
+		return "%s %s: Symphony: %p (%s) -> %s" % [
+			RUBY_ENGINE,
+			RUBY_VERSION,
+			self.class,
+			self.class.work_model,
+			self.class.queue_name
+		]
 	end
 
 

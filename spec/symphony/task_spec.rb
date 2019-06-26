@@ -174,6 +174,12 @@ describe Symphony::Task do
 
 			let( :task_class ) do
 				Class.new( described_class ) do
+					def self::name
+						"TestTask"
+					end
+					def self::inspect
+						"TestTask"
+					end
 					def initialize( * )
 						super
 						@received_messages = []
@@ -200,6 +206,13 @@ describe Symphony::Task do
 				expect( task.received_messages ).to eq([ [payload, metadata] ])
 			end
 
+
+			it "sets its proctitle to a useful string" do
+				expect( Process ).to receive( :setproctitle ).
+					with( /ruby \d+\.\d+\.\d+: Symphony: TestTask \(longlived\) -> testtask/i )
+
+				task.start
+			end
 
 		end
 

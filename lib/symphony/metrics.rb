@@ -31,7 +31,7 @@ module Symphony::Metrics
 			registry: @metriks_registry,
 			prefix: self.class.name )
 		@proc_reporter = Metriks::Reporter::ProcTitle.new(
-			prefix: self.class.name,
+			prefix: self.procname,
 			registry: @metriks_registry,
 			on_error: lambda {|ex| self.log.error(ex) } )
 
