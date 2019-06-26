@@ -6,6 +6,8 @@ require 'symphony/task_group/longlived'
 
 describe Symphony::TaskGroup::LongLived do
 
+	FIRST_PID = 414
+
 	let( :task ) do
 		Class.new( Symphony::Task ) do
 			extend Symphony::MethodUtilities
@@ -30,16 +32,13 @@ describe Symphony::TaskGroup::LongLived do
 
 	let( :pid_generator ) do
 		Enumerator.new do |generator|
-			i = 414
+			i = FIRST_PID
 			loop do
 				generator.yield( i )
 				i += rand( 3 ) + 1
 			end
 		end
 	end
-
-	# not enough samples
-	# trending up
 
 
 
@@ -61,20 +60,12 @@ describe Symphony::TaskGroup::LongLived do
 
 
 		it "starts an initial worker if it doesn't have any" do
-			allow( Process ).to receive( :setpgid ).with( 414, 0 )
-
-			channel = double( Bunny::Channel )
-			queue = double( Bunny::Queue )
-			expect( Symphony::Queue ).to receive( :amqp_channel ).
-				and_return( channel )
-			expect( channel ).to receive( :queue ).
-				with( task.queue_name, passive: true, prefetch: 0 ).
-				and_return( queue )
+			allow( Process ).to receive( :setpgid ).with( FIRST_PID, 0 )
 
 			task_group.adjust_workers
 
 			expect( task_group.workers ).to_not be_empty
-			expect( task_group.workers ).to contain_exactly( 414 )
+			expect( task_group.workers ).to contain_exactly( FIRST_PID )
 		end
 
 
@@ -98,13 +89,13 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size ) do |time|
+			start.upto( start + samples.size + 1 ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
 			end
 
-			expect( task_group.workers ).to include( 414 )
+			expect( task_group.workers ).to include( FIRST_PID )
 			expect( task_group.workers.length ).to eq( 2 )
 		end
 
@@ -129,7 +120,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size ) do |time|
+			start.upto( start + samples.size + 1 ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
@@ -159,7 +150,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size ) do |time|
+			start.upto( start + samples.size + 1 ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
@@ -187,7 +178,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size ) do |time|
+			start.upto( start + samples.size + 1 ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
@@ -217,7 +208,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size ) do |time|
+			start.upto( start + samples.size + 1 ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end

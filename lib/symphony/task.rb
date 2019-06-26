@@ -349,16 +349,19 @@ class Symphony::Task
 
 		rval = nil
 		self.queue.wait_for_message( oneshot ) do |payload, metadata|
-			self.last_worked = nil
-			work_payload = self.preprocess_payload( payload, metadata )
+			begin
+				self.last_worked = nil
+				work_payload = self.preprocess_payload( payload, metadata )
 
-			rval = if self.class.timeout
-				self.work_with_timeout( work_payload, metadata )
-			else
-				self.work( work_payload, metadata )
+				rval = if self.class.timeout
+					self.work_with_timeout( work_payload, metadata )
+				else
+					self.work( work_payload, metadata )
+				end
+			ensure
+				self.last_worked = Time.now
 			end
 
-			self.last_worked = Time.now
 			rval
 		end
 
@@ -390,7 +393,10 @@ class Symphony::Task
 		# If it's unset, it means it's running now
 		return unless self.last_worked && self.exit_on_idle?
 
-		if (Time.now - self.last_worked) > self.class.idle_timeout
+		seconds_idle = Time.now - self.last_worked
+		self.log.debug "%p: idle %0.2fs" % [ self.class, seconds_idle ]
+
+		if seconds_idle > self.class.idle_timeout
 			self.log.debug "Sending stop signal due to idle timeout"
 			self.stop_gracefully
 		end

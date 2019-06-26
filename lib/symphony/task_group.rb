@@ -64,7 +64,7 @@ class Symphony::TaskGroup
 
 		Process.setpgid( pid, 0 )
 
-		self.log.info "Adding worker %p" % [ pid ]
+		self.log.info "Adding %p worker %p" % [ task_class, pid ]
 		self.workers << pid
 		@last_child_started = Time.now
 

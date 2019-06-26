@@ -36,7 +36,7 @@ module Symphony::Statistics
 	### Add the specified +value+ as a sample for the current time.
 	def add_sample( value )
 		@samples << [ Time.now.to_f, value ]
-		@samples.pop( @samples.size - self.sample_size ) if @samples.size > self.sample_size
+		@samples.shift( @samples.size - self.sample_size ) if @samples.size > self.sample_size
 		@counter = ( @counter + 1 ) % 3
 	end
 

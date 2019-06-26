@@ -235,7 +235,7 @@ class Symphony::Queue
 		cons = Bunny::Consumer.new( amqp_queue.channel, amqp_queue, tag, !ackmode, false, CONSUMER_ARGS )
 
 		cons.on_delivery do |delivery_info, properties, payload|
-			rval = self.handle_message( delivery_info, properties, payload, &work_callback )
+			self.handle_message( delivery_info, properties, payload, &work_callback )
 			self.log.debug "Done with message %s. Session is %s" %
 					[ delivery_info.delivery_tag, self.class.amqp_session.closed? ? "closed" : "open" ]
 			cons.cancel if self.shutting_down?
@@ -278,8 +278,8 @@ class Symphony::Queue
 			end
 		end
 
-			return queue
-		end
+		return queue
+	end
 
 
 	### Handle each subscribed message.

@@ -40,13 +40,13 @@ class OneshotSimulator < Symphony::Task
 
 		val = Random.rand
 		case
-		when val < 0.33
+		when val < 0.1
 			$stderr.puts "Simulating an error in the task (reject)."
 			raise "OOOOOPS!"
-		when val < 0.66
+		when val < 0.15
 			$stderr.puts "Simulating a soft failure in the task (reject+requeue)."
 			return false
-		when val < 0.88
+		when val < 0.20
 			$stderr.puts "Simulating a timeout case"
 			sleep( self.class.timeout + 1 )
 		else

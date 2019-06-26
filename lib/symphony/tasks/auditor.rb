@@ -17,7 +17,7 @@ class Auditor < Symphony::Task
 
 
 	### Create a new Auditor task.
-	def initialize( queue )
+	def initialize( * )
 		super
 		@logdir = Pathname.pwd
 		@logfile = @logdir + 'events.log'
