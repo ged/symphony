@@ -1,14 +1,14 @@
 # -*- encoding: utf-8 -*-
-# stub: symphony 0.12.0.pre20170918164411 ruby lib
+# stub: symphony 0.13.0.pre20190702125536 ruby lib
 
 Gem::Specification.new do |s|
   s.name = "symphony".freeze
-  s.version = "0.12.0.pre20170918164411"
+  s.version = "0.13.0.pre20190702125536"
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
   s.authors = ["Michael Granger".freeze, "Mahlon E. Smith".freeze]
-  s.date = "2017-09-18"
+  s.date = "2019-07-02"
   s.description = "Symphony is a subscription-based asynchronous job system. It\nallows you to define jobs that watch for lightweight events from a\ndistributed-messaging AMQP broker, and do work based on their payload.\n\nIt includes several executables under bin/:\n\nsymphony::\n  A daemon which manages startup and shutdown of one or more Workers\n  running Tasks as they are published from a queue.\n\nsymphony-task::\n  A wrapper that runs a single task, useful for testing, or if you don't\n  require the process management that the symphony daemon provides.".freeze
   s.email = ["ged@FaerieMUD.org".freeze, "mahlon@martini.nu".freeze]
   s.executables = ["symphony".freeze, "symphony-task".freeze]
@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.licenses = ["BSD".freeze]
   s.rdoc_options = ["-f".freeze, "fivefish".freeze, "-t".freeze, "Symphony".freeze]
   s.required_ruby_version = Gem::Requirement.new(">= 2.0.0".freeze)
-  s.rubygems_version = "2.6.12".freeze
+  s.rubygems_version = "3.0.3".freeze
   s.signing_key = "/Volumes/Keys and Things/ged-private_gem_key.pem".freeze
   s.summary = "Symphony is a subscription-based asynchronous job system".freeze
 
@@ -36,13 +36,13 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<metriks>.freeze, ["~> 0.9"])
       s.add_runtime_dependency(%q<rusage>.freeze, ["~> 0.2"])
       s.add_development_dependency(%q<hoe-mercurial>.freeze, ["~> 1.4"])
-      s.add_development_dependency(%q<hoe-deveiate>.freeze, ["~> 0.9"])
+      s.add_development_dependency(%q<hoe-deveiate>.freeze, ["~> 0.10"])
       s.add_development_dependency(%q<hoe-highline>.freeze, ["~> 0.2"])
       s.add_development_dependency(%q<rspec>.freeze, ["~> 3.0"])
       s.add_development_dependency(%q<simplecov>.freeze, ["~> 0.8"])
       s.add_development_dependency(%q<timecop>.freeze, ["~> 0.8"])
-      s.add_development_dependency(%q<rdoc>.freeze, ["~> 4.0"])
-      s.add_development_dependency(%q<hoe>.freeze, ["~> 3.16"])
+      s.add_development_dependency(%q<rdoc>.freeze, [">= 4.0", "< 7"])
+      s.add_development_dependency(%q<hoe>.freeze, ["~> 3.17"])
     else
       s.add_dependency(%q<configurability>.freeze, ["~> 3.1"])
       s.add_dependency(%q<loggability>.freeze, ["~> 0.11"])
@@ -54,13 +54,13 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<metriks>.freeze, ["~> 0.9"])
       s.add_dependency(%q<rusage>.freeze, ["~> 0.2"])
       s.add_dependency(%q<hoe-mercurial>.freeze, ["~> 1.4"])
-      s.add_dependency(%q<hoe-deveiate>.freeze, ["~> 0.9"])
+      s.add_dependency(%q<hoe-deveiate>.freeze, ["~> 0.10"])
       s.add_dependency(%q<hoe-highline>.freeze, ["~> 0.2"])
       s.add_dependency(%q<rspec>.freeze, ["~> 3.0"])
       s.add_dependency(%q<simplecov>.freeze, ["~> 0.8"])
       s.add_dependency(%q<timecop>.freeze, ["~> 0.8"])
-      s.add_dependency(%q<rdoc>.freeze, ["~> 4.0"])
-      s.add_dependency(%q<hoe>.freeze, ["~> 3.16"])
+      s.add_dependency(%q<rdoc>.freeze, [">= 4.0", "< 7"])
+      s.add_dependency(%q<hoe>.freeze, ["~> 3.17"])
     end
   else
     s.add_dependency(%q<configurability>.freeze, ["~> 3.1"])
@@ -73,12 +73,12 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<metriks>.freeze, ["~> 0.9"])
     s.add_dependency(%q<rusage>.freeze, ["~> 0.2"])
     s.add_dependency(%q<hoe-mercurial>.freeze, ["~> 1.4"])
-    s.add_dependency(%q<hoe-deveiate>.freeze, ["~> 0.9"])
+    s.add_dependency(%q<hoe-deveiate>.freeze, ["~> 0.10"])
     s.add_dependency(%q<hoe-highline>.freeze, ["~> 0.2"])
     s.add_dependency(%q<rspec>.freeze, ["~> 3.0"])
     s.add_dependency(%q<simplecov>.freeze, ["~> 0.8"])
     s.add_dependency(%q<timecop>.freeze, ["~> 0.8"])
-    s.add_dependency(%q<rdoc>.freeze, ["~> 4.0"])
-    s.add_dependency(%q<hoe>.freeze, ["~> 3.16"])
+    s.add_dependency(%q<rdoc>.freeze, [">= 4.0", "< 7"])
+    s.add_dependency(%q<hoe>.freeze, ["~> 3.17"])
   end
 end
