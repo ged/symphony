@@ -1,14 +1,15 @@
 # -*- encoding: utf-8 -*-
-# stub: symphony 0.13.0.pre20190702125536 ruby lib
+# stub: symphony 0.13.0.pre20190709131235 ruby lib
 
 Gem::Specification.new do |s|
   s.name = "symphony".freeze
-  s.version = "0.13.0.pre20190702125536"
+  s.version = "0.13.0.pre20190709131235"
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
   s.authors = ["Michael Granger".freeze, "Mahlon E. Smith".freeze]
-  s.date = "2019-07-02"
+  s.cert_chain = ["/Users/mgranger/.gem/gem-public_cert.pem".freeze]
+  s.date = "2019-07-09"
   s.description = "Symphony is a subscription-based asynchronous job system. It\nallows you to define jobs that watch for lightweight events from a\ndistributed-messaging AMQP broker, and do work based on their payload.\n\nIt includes several executables under bin/:\n\nsymphony::\n  A daemon which manages startup and shutdown of one or more Workers\n  running Tasks as they are published from a queue.\n\nsymphony-task::\n  A wrapper that runs a single task, useful for testing, or if you don't\n  require the process management that the symphony daemon provides.".freeze
   s.email = ["ged@FaerieMUD.org".freeze, "mahlon@martini.nu".freeze]
   s.executables = ["symphony".freeze, "symphony-task".freeze]

@@ -1,3 +1,10 @@
+== v0.12.2 [2019-07-09] Michael Granger <ged@FaerieMUD.org>
+
+Bugfixes:
+
+- Rescue all runtime errors when measuring queue depth
+
+
 == v0.12.1 [2019-07-01] Michael Granger <ged@FaerieMUD.org>
 
 Bugfixes:
