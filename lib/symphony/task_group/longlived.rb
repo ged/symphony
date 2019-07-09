@@ -67,8 +67,8 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 		count = @queue.message_count
 		self.add_sample( count )
 
-	rescue Bunny::ChannelAlreadyClosed => err
-		self.log.debug "Unexpected queue state, resetting: "% [ err.message ]
+	rescue => err
+		self.log.debug "%p while counting messages (%s); resetting."% [ err.class, err.message ]
 		@queue = nil
 	end
 
