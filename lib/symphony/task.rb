@@ -69,6 +69,7 @@ class Symphony::Task
 	### Prepare the process after being forked from the Daemon.
 	def self::after_fork
 		self.log.debug "After fork [%d]: Threads: %p" % [ Process.pid, ThreadGroup::Default.list ]
+		Symphony::Queue.reset
 		Process.setpgrp
 		Symphony.config.install if Symphony.config
 	end

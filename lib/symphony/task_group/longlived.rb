@@ -66,10 +66,6 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 
 		count = @queue.message_count
 		self.add_sample( count )
-
-	rescue => err
-		self.log.debug "%p while counting messages (%s); resetting."% [ err.class, err.message ]
-		@queue = nil
 	end
 
 
