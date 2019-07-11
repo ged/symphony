@@ -1,3 +1,10 @@
+== v0.12.3 [2019-07-11] Michael Granger <ged@FaerieMUD.org>
+
+Bugfixes:
+
+- Re-establish AMQP connections after the task fork
+
+
 == v0.12.2 [2019-07-09] Michael Granger <ged@FaerieMUD.org>
 
 Bugfixes:
