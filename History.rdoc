@@ -1,3 +1,11 @@
+== v0.12.4 [2019-07-11] Michael Granger <ged@FaerieMUD.org>
+
+Bugfixes:
+
+- Be more paranoid about shared channels, and be defensive when using
+  the counting queue.
+
+
 == v0.12.3 [2019-07-11] Michael Granger <ged@FaerieMUD.org>
 
 Bugfixes:

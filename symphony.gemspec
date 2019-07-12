@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
-# stub: symphony 0.13.0.pre20190711170627 ruby lib
+# stub: symphony 0.13.0.pre20190712133338 ruby lib
 
 Gem::Specification.new do |s|
   s.name = "symphony".freeze
-  s.version = "0.13.0.pre20190711170627"
+  s.version = "0.13.0.pre20190712133338"
 
   s.required_rubygems_version = Gem::Requirement.new("> 1.3.1".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
