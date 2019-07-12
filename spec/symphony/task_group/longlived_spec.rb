@@ -23,6 +23,9 @@ describe Symphony::TaskGroup::LongLived do
 			def self::run
 				self.has_run = true
 			end
+			def self::name
+				return "TestTask"
+			end
 		end
 	end
 
@@ -75,8 +78,8 @@ describe Symphony::TaskGroup::LongLived do
 
 			allow( Process ).to receive( :setpgid )
 
-			channel = double( Bunny::Channel )
-			queue = double( Bunny::Queue )
+			channel = double( Bunny::Channel, open?: true )
+			queue = double( Bunny::Queue, channel: channel )
 			expect( Symphony::Queue ).to receive( :amqp_channel ).
 				and_return( channel )
 			expect( channel ).to receive( :queue ).
@@ -89,7 +92,8 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size + 1 ) do |time|
+			start.upto( start + samples.size ) do |time|
+				Loggability.logger.debug "Foom"
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
@@ -106,8 +110,8 @@ describe Symphony::TaskGroup::LongLived do
 
 			allow( Process ).to receive( :setpgid )
 
-			channel = double( Bunny::Channel )
-			queue = double( Bunny::Queue )
+			channel = double( Bunny::Channel, open?: true )
+			queue = double( Bunny::Queue, channel: channel )
 			expect( Symphony::Queue ).to receive( :amqp_channel ).
 				and_return( channel )
 			expect( channel ).to receive( :queue ).
@@ -120,7 +124,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size + 1 ) do |time|
+			start.upto( start + samples.size ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
@@ -136,8 +140,8 @@ describe Symphony::TaskGroup::LongLived do
 
 			allow( Process ).to receive( :setpgid )
 
-			channel = double( Bunny::Channel )
-			queue = double( Bunny::Queue )
+			channel = double( Bunny::Channel, open?: true )
+			queue = double( Bunny::Queue, channel: channel )
 			expect( Symphony::Queue ).to receive( :amqp_channel ).
 				and_return( channel )
 			expect( channel ).to receive( :queue ).
@@ -150,7 +154,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size + 1 ) do |time|
+			start.upto( start + samples.size ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
@@ -166,8 +170,8 @@ describe Symphony::TaskGroup::LongLived do
 
 			allow( Process ).to receive( :setpgid )
 
-			channel = double( Bunny::Channel )
-			queue = double( Bunny::Queue )
+			channel = double( Bunny::Channel, open?: true )
+			queue = double( Bunny::Queue, channel: channel )
 			expect( Symphony::Queue ).to receive( :amqp_channel ).
 				and_return( channel )
 			expect( channel ).to receive( :queue ).
@@ -178,7 +182,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size + 1 ) do |time|
+			start.upto( start + samples.size ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end
@@ -194,8 +198,8 @@ describe Symphony::TaskGroup::LongLived do
 
 			allow( Process ).to receive( :setpgid )
 
-			channel = double( Bunny::Channel )
-			queue = double( Bunny::Queue )
+			channel = double( Bunny::Channel, open?: true )
+			queue = double( Bunny::Queue, channel: channel )
 			expect( Symphony::Queue ).to receive( :amqp_channel ).
 				and_return( channel )
 			expect( channel ).to receive( :queue ).
@@ -208,7 +212,7 @@ describe Symphony::TaskGroup::LongLived do
 			expect( queue ).to receive( :message_count ).and_return( *samples )
 
 			start = 1414002605
-			start.upto( start + samples.size + 1 ) do |time|
+			start.upto( start + samples.size ) do |time|
 				Timecop.freeze( time ) do
 					task_group.adjust_workers
 				end

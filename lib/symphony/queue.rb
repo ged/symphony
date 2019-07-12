@@ -69,6 +69,7 @@ class Symphony::Queue
 
 	### Fetch a Hash of AMQP options.
 	def self::amqp_session_options
+		self.session_opts ||= self.defaults
 		opts = self.session_opts.merge({
 			logger: Loggability[ Bunny ],
 		})

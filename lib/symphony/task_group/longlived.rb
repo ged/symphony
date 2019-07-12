@@ -35,8 +35,6 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 			return [ pid ]
 		end
 
-		@queue ||= self.get_message_counting_queue
-
 		return nil
 	end
 
@@ -44,11 +42,10 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 	### Return +true+ if the task group should scale up by one.
 	def needs_a_worker?
 		return true if self.workers.empty?
-		return false unless @queue
-
+		queue = self.get_message_counting_queue or return false
 
 		# Calculate the number of workers across the whole broker
-		if ( cc = @queue.consumer_count ) >= self.max_workers
+		if ( cc = queue.consumer_count ) >= self.max_workers
 			self.log.debug "%p: Already at max workers (%d)" % [ self.task_class, self.max_workers ]
 			return false
 		else
@@ -62,9 +59,10 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 
 	### Add the current number of workers to the samples.
 	def sample_queue_status
-		return unless @queue
+		return if self.workers.empty?
 
-		count = @queue.message_count
+		queue = self.get_message_counting_queue or return
+		count = queue.message_count
 		self.add_sample( count )
 	end
 
@@ -82,11 +80,20 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 	### Get a queue for counting the number of messages in the queue for this
 	### worker.
 	def get_message_counting_queue
-		channel = Symphony::Queue.amqp_channel
-		queue = channel.queue( self.task_class.queue_name, passive: true, prefetch: 0 )
+		@queue ||= begin
+			self.log.debug "Creating the message-counting queue."
+			channel = Symphony::Queue.amqp_channel
+			channel.queue( self.task_class.queue_name, passive: true, prefetch: 0 )
+		end
 
-		return queue
-	rescue Bunny::NotFound => err
+		unless @queue.channel.open?
+			self.log.info "Message-counting queue's channel was closed: resetting."
+			Symphony::Queue.reset
+			@queue = nil
+		end
+
+		return @queue
+	rescue Bunny::NotFound, Bunny::ChannelAlreadyClosed => err
 		self.log.info "Child hasn't created the queue yet; deferring"
 		Symphony::Queue.reset
 
