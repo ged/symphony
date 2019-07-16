@@ -36,6 +36,9 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 		end
 
 		return nil
+	rescue Timeout::Error => err
+		self.log.warn "%p while adjusting workers: %s" % [ err.class, err.message ]
+		return nil
 	end
 
 
