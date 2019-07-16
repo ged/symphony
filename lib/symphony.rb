@@ -12,7 +12,7 @@ module Symphony
 	       Configurability
 
 	# Library version constant
-	VERSION = '0.12.4'
+	VERSION = '0.12.5'
 
 	# Version-control revision constant
 	REVISION = %q$Revision$

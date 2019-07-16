@@ -1,3 +1,10 @@
+== v0.12.5 [2019-07-16] Michael Granger <ged@FaerieMUD.org>
+
+Improvements:
+
+- Rescue timeouts when adjusting workers
+
+
 == v0.12.4 [2019-07-11] Michael Granger <ged@FaerieMUD.org>
 
 Bugfixes:
