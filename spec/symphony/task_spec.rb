@@ -70,7 +70,7 @@ RSpec.describe Symphony::Task do
 			end
 		end
 		let( :payload ) {{ "the" => "payload" }}
-		let( :serialized_payload ) { Yajl.dump(payload) }
+		let( :serialized_payload ) { JSON.generate(payload) }
 		let( :metadata ) {{ :content_type => 'application/json' }}
 		let( :queue ) do
 			obj = Symphony::Queue.for_task( task_class )

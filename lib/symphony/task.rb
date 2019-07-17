@@ -7,7 +7,7 @@ require 'pluggability'
 require 'loggability'
 
 require 'msgpack'
-require 'yajl'
+require 'json'
 require 'yaml'
 
 require 'symphony' unless defined?( Symphony )
@@ -449,7 +449,7 @@ class Symphony::Task
 			when 'application/x-msgpack'
 				MessagePack.unpack( payload )
 			when 'application/json', 'text/javascript'
-				Yajl::Parser.parse( payload )
+				JSON.parse( payload )
 			when 'application/x-yaml', 'text/x-yaml'
 				YAML.load( payload )
 			else
