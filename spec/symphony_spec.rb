@@ -6,7 +6,7 @@ require 'rspec'
 require 'symphony'
 
 
-describe Symphony do
+RSpec.describe Symphony do
 
 	before( :each ) do
 		ENV.delete( 'SYMPHONY_CONFIG' )

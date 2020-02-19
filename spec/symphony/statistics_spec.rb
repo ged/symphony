@@ -5,7 +5,7 @@ require_relative '../helpers'
 require 'symphony/statistics'
 
 
-describe Symphony::Statistics do
+RSpec.describe Symphony::Statistics do
 
 
 	let( :including_class ) do

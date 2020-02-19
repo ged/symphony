@@ -4,7 +4,7 @@ require_relative '../helpers'
 
 require 'symphony/task'
 
-describe Symphony::Task do
+RSpec.describe Symphony::Task do
 
 	before( :all ) do
 		Symphony::Queue.configure

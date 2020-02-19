@@ -10,4 +10,7 @@ pkg/
 ^ChangeLog$
 ^coverage/
 ^doc/
+spec/\.state$
+docs/
 ~$
+

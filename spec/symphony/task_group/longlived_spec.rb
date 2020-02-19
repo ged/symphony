@@ -4,7 +4,7 @@ require_relative '../../helpers'
 
 require 'symphony/task_group/longlived'
 
-describe Symphony::TaskGroup::LongLived do
+RSpec.describe Symphony::TaskGroup::LongLived do
 
 	FIRST_PID = 414
 

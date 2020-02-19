@@ -5,7 +5,7 @@ require_relative '../../helpers'
 require 'symphony/task_group/oneshot'
 
 
-describe Symphony::TaskGroup::Oneshot do
+RSpec.describe Symphony::TaskGroup::Oneshot do
 
 	let( :task ) do
 		Class.new( Symphony::Task ) do

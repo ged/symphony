@@ -4,7 +4,7 @@ require_relative '../helpers'
 
 require 'symphony/queue'
 
-describe Symphony::Queue do
+RSpec.describe Symphony::Queue do
 
 
 	before( :each ) do

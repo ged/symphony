@@ -1,5 +1,5 @@
 # -*- ruby -*-
-#encoding: utf-8
+# frozen_string_literal: true
 
 require 'set'
 require 'sysexits'
@@ -47,6 +47,14 @@ class Symphony::Task
 	plugin_prefixes 'symphony/tasks'
 
 
+	@queue         = nil
+	@acknowledge   = true
+	@routing_keys  = Set.new
+	@prefetch      = 10
+	@persistent    = false
+	@always_rebind = false
+
+
 	### Create a new Task object and listen for work. Exits with the code returned
 	### by #start when it's done.
 	def self::run( exit_on_idle=false )
@@ -79,11 +87,14 @@ class Symphony::Task
 	def self::inherited( subclass )
 		super
 
+		subclass.instance_variable_set( :@queue, nil )
+		subclass.instance_variable_set( :@always_rebind, false )
 		subclass.instance_variable_set( :@routing_keys, Set.new )
 		subclass.instance_variable_set( :@acknowledge, true )
 		subclass.instance_variable_set( :@work_model, :longlived )
 		subclass.instance_variable_set( :@prefetch, 10 )
 		subclass.instance_variable_set( :@timeout_action, :reject )
+		subclass.instance_variable_set( :@timeout, nil )
 		subclass.instance_variable_set( :@persistent, false )
 		subclass.instance_variable_set( :@idle_timeout, DEFAULT_IDLE_TIMEOUT )
 	end

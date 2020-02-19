@@ -7,7 +7,7 @@ require 'symphony'
 require 'symphony/routing'
 
 
-describe Symphony::Routing do
+RSpec.describe Symphony::Routing do
 
 	let( :task_class ) do
 		Class.new( Symphony::Task ) do

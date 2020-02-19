@@ -2,7 +2,7 @@
 
 require_relative '../helpers'
 
-describe Symphony::TaskGroup do
+RSpec.describe Symphony::TaskGroup do
 
 	let( :task ) do
 		Class.new( Symphony::Task ) do

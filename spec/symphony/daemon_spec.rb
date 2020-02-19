@@ -1,5 +1,5 @@
 # -*- ruby -*-
-#encoding: utf-8
+# frozen_string_literal: true
 # vim: set noet nosta sw=4 ts=4 :
 
 
@@ -19,7 +19,7 @@ class Test3Task < Symphony::Task
 end
 
 
-describe Symphony::Daemon do
+RSpec.describe Symphony::Daemon do
 
 	before( :all ) do
 		@pids = ( 200..65534 ).cycle

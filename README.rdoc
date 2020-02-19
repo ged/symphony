@@ -1,7 +1,13 @@
 = symphony
 
-wiki:: http://bitbucket.org/ged/symphony
-docs:: http://deveiate.org/code/symphony
+home:
+https://hg.sr.ht/~ged/symphony
+
+docs:
+https://deveiate.org/code/symphony
+
+github:
+https://github.com/ged/symphony
 
 
 == Description
@@ -45,20 +51,26 @@ For a more detailed description of usage, please refer to the USAGE document.
 == Contributing
 
 You can check out the current development source with Mercurial via its
-{project page}[http://bitbucket.org/ged/symphony]. Or if you prefer Git, via 
+{project page}[https://hg.sr.ht/~ged/symphony]. Or if you prefer Git, via
 {its Github mirror}[https://github.com/ged/symphony].
 
 After checking out the source, run:
 
-    $ rake newb
+    $ rake setup
 
 This task will install any missing dependencies, run the tests/specs,
 and generate the API documentation.
 
 
+== Authors
+
+- Michael Granger <ged@faeriemud.org>
+- Mahlon E. Smith <mahlon@martini.nu>
+
+
 == License
 
-Copyright (c) 2011-2015, Michael Granger and Mahlon E. Smith
+Copyright (c) 2011-2020, Michael Granger and Mahlon E. Smith
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

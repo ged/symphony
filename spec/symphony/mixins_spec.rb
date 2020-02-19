@@ -5,7 +5,7 @@ require_relative '../helpers'
 require 'symphony/mixins'
 
 
-describe Symphony, 'mixins' do
+RSpec.describe Symphony, 'mixins' do
 
 	describe Symphony::MethodUtilities, 'used to extend a class' do
 

@@ -1,5 +1,5 @@
 # -*- ruby -*-
-#encoding: utf-8
+# frozen_string_literal: true
 
 require 'set'
 require 'symphony/task_group' unless defined?( Symphony::TaskGroup )
