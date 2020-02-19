@@ -5,7 +5,6 @@ pkg/
 \.lock$
 \.log$
 \.orig$
-\.pem$
 \.rej$
 ^ChangeLog$
 ^coverage/
