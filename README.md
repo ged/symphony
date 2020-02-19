@@ -1,16 +1,16 @@
-= symphony
+# symphony
 
-home:
-https://hg.sr.ht/~ged/symphony
+home
+: https://hg.sr.ht/~ged/symphony
 
-docs:
-https://deveiate.org/code/symphony
+docs
+: https://deveiate.org/code/symphony
 
-github:
-https://github.com/ged/symphony
+github
+: https://github.com/ged/symphony
 
 
-== Description
+## Description
 
 Symphony is a subscription-based asynchronous job system. It
 allows you to define jobs that watch for lightweight events from a
@@ -27,7 +27,7 @@ symphony-task::
   require the process management that the symphony daemon provides.
 
 
-== Synopsis
+## Synopsis
 
 	class WorkerTask < Symphony::Task
 		# Process all events
@@ -43,32 +43,31 @@ symphony-task::
 For a more detailed description of usage, please refer to the USAGE document.
 
 
-== Installation
+## Installation
 
     gem install symphony
 
 
-== Contributing
+## Contributing
 
 You can check out the current development source with Mercurial via its
-{project page}[https://hg.sr.ht/~ged/symphony]. Or if you prefer Git, via
-{its Github mirror}[https://github.com/ged/symphony].
+[project page](https://hg.sr.ht/~ged/symphony). Or if you prefer Git, via
+[its Github mirror](https://github.com/ged/symphony).
 
 After checking out the source, run:
 
     $ rake setup
 
-This task will install any missing dependencies, run the tests/specs,
-and generate the API documentation.
+This task will install dependencies, and do any other necessary developer setup.
 
 
-== Authors
+## Authors
 
 - Michael Granger <ged@faeriemud.org>
 - Mahlon E. Smith <mahlon@martini.nu>
 
 
-== License
+## License
 
 Copyright (c) 2011-2020, Michael Granger and Mahlon E. Smith
 All rights reserved.
