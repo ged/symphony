@@ -248,7 +248,7 @@ class Symphony::Daemon
 		self.log.info "Restarting task group for %p" % [ task_class ]
 		group.max_workers = max
 		group.restart_workers
-		end
+	end
 
 
 	### Shut down the workers for the specified task group.

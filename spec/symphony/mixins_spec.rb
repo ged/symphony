@@ -10,7 +10,11 @@ RSpec.describe Symphony, 'mixins' do
 	describe Symphony::MethodUtilities, 'used to extend a class' do
 
 		let!( :extended_class ) do
-			klass = Class.new
+			klass = Class.new do
+				def initialize
+					@foo = nil
+				end
+			end
 			klass.extend( Symphony::MethodUtilities )
 			klass
 		end

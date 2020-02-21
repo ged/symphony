@@ -48,6 +48,10 @@ module Symphony::SpecHelpers
 			def initialize
 				@queue = nil
 				@exchange = nil
+				@open = true
+			end
+			def open?
+				return @open
 			end
 			def queue( name, opts={} )
 				return @queue ||= DummySession::Queue.new( self )
@@ -60,7 +64,9 @@ module Symphony::SpecHelpers
 			def number
 				return 1
 			end
-			def close; end
+			def close
+				@open = false
+			end
 		end
 
 		class Exchange

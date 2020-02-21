@@ -96,7 +96,7 @@ class Symphony::TaskGroup::LongLived < Symphony::TaskGroup
 		end
 
 		return @queue
-	rescue Bunny::NotFound, Bunny::ChannelAlreadyClosed => err
+	rescue Bunny::NotFound, Bunny::ChannelAlreadyClosed
 		self.log.info "Child hasn't created the queue yet; deferring"
 		Symphony::Queue.reset
 
