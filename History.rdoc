@@ -1,3 +1,19 @@
+= Release History for symphony
+
+---
+
+== v0.13.0 [2020-03-09] Michael Granger <ged@faeriemud.org>
+
+Improvements:
+
+- Remove Yajl dependency in favor of stdlib json.
+- Update for Ruby 2.7
+
+Changes:
+
+- Requires Ruby 2.6+
+
+
 == v0.12.5 [2019-07-16] Michael Granger <ged@FaerieMUD.org>
 
 Improvements:
