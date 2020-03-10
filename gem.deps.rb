@@ -10,7 +10,7 @@ gem 'metriks', "~> 0.9"
 gem 'rusage', "~> 0.2"
 
 group :development do
-	gem 'rake-deveiate', "~> 0.10"
+	gem 'rake-deveiate', "~> 0.12"
 	gem 'simplecov', "~> 0.8"
 	gem 'timecop', "~> 0.8"
 end
